@@ -1,50 +1,45 @@
-# Welcome to your Expo app 👋
+# 📊 ControlaPAG: Service and Payment Management
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## 📝 Project Description
 
-## Get started
+**ControlaPAG** is a web platform developed as a final course project, designed to solve the challenges in service provision management. The platform acts as a link between service providers and their clients, optimizing scheduling processes, recurring billing, and ensuring full transparency in transactions.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## ✨ Key Features
 
-2. Start the app
+### For Service Providers:
 
-   ```bash
-   npx expo start
-   ```
+- ✅ **Service Registration:** A simple interface to add and manage the services offered.
+- 🗓️ **Custom Scheduling:** A flexible and integrated scheduling system.
+- 💸 **Automated Billing:** Configuration of recurring charges for plans and subscriptions.
+- 📈 **Financial Dashboard:** A control panel with a clear view of revenue, pending payments, and transaction history.
 
-In the output, you'll find options to open the app in a
+### For Clients:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- 💳 **Client Portal:** An exclusive area to view pending debts and a complete payment history.
+- 🔒 **Online Payments:** Make payments securely and conveniently directly on the platform.
+- 📄 **Full Transparency:** Easy access to all details of contracted services and completed transactions.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## 🚀 Technologies Used
 
-When you're ready, run:
+The platform was built with modern technologies, ensuring performance, security, and scalability.
 
-```bash
-npm run reset-project
-```
+- **Frontend:**
+  - [Expo (React Native)](https://expo.dev/) - A platform and framework for building universal applications with React. The main focus of this project is the **Web** version.
+- **Backend:**
+  - [Node.js](https://nodejs.org/) - A JavaScript runtime environment that allows for building high-performance applications.
+- **APIs and Integrations:**
+  - **Payment API:** Integration with payment gateways to securely process transactions.
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 👨‍💻 Authors
 
-To learn more about developing your project with Expo, look at the following resources:
+This project was developed by:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- **Douglas Junior** - [linkedin](https://www.linkedin.com/in/dg-junior/)
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
