@@ -1,3 +1,4 @@
+import { FontPoppins } from "@/constants/font";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import React from "react";
 import {
@@ -9,60 +10,83 @@ import {
   type ViewStyle,
 } from "react-native";
 
-type ButtonVariant = "default" | "primary" | "destructive" | "outline";
+type ButtonVariant = "default" | "primary" | "destructive" | "outline" | "link";
 type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonProps = {
   title: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
+  style?: ViewStyle;
 } & PressableProps;
 
 export function Button({
   title,
   variant = "default",
   size = "md",
+  style,
   ...pressableProps
 }: ButtonProps) {
-  const variantStyles = buttonVariants[variant];
-  const sizeStyles = buttonSizes[size];
-
+  // Cores baseadas no tema
   const tintColor = useThemeColor({}, "tint");
-  const primaryColor = useThemeColor({}, "text");
+  const textColorPrimary = useThemeColor({}, "text");
   const backgroundColor = useThemeColor({}, "background");
 
-  const getColors = () => {
+  const sizeStyles = buttonSizes[size];
+
+  const getVariantStyles = (): {
+    container: ViewStyle;
+    text: TextStyle;
+  } => {
     switch (variant) {
       case "primary":
-        return { bg: primaryColor, text: "#FFFFFF" };
+        return {
+          container: { backgroundColor: textColorPrimary },
+          text: { color: backgroundColor },
+        };
       case "destructive":
-        return { bg: "#E53E3E", text: "#FFFFFF" };
+        return {
+          container: { backgroundColor: "#E53E3E" },
+          text: { color: "#FFFFFF" },
+        };
       case "outline":
-        return { bg: "transparent", text: tintColor, border: tintColor };
+        return {
+          container: {
+            backgroundColor: "transparent",
+            borderColor: tintColor,
+            borderWidth: 1,
+          },
+          text: { color: tintColor },
+        };
+      case "link":
+        return {
+          container: { backgroundColor: "transparent" },
+          text: { color: tintColor, textDecorationLine: "underline" },
+        };
       case "default":
       default:
-        return { bg: tintColor, text: "#FFFFFF" };
+        return {
+          container: { backgroundColor: tintColor },
+          text: { color: "#FFFFFF" },
+        };
     }
   };
 
-  const { bg, text, border } = getColors();
+  const variantStyles = getVariantStyles();
 
   return (
     <Pressable
       style={({ pressed }) => [
         styles.base,
         sizeStyles.container,
-        {
-          backgroundColor: bg,
-          borderColor: border,
-          borderWidth: border ? 1 : 0,
-        },
+        variantStyles.container,
         pressed && styles.pressed,
         pressableProps.disabled && styles.disabled,
+        style,
       ]}
       {...pressableProps}
     >
-      <Text style={[styles.textBase, sizeStyles.text, { color: text }]}>
+      <Text style={[styles.textBase, sizeStyles.text, variantStyles.text]}>
         {title}
       </Text>
     </Pressable>
@@ -74,35 +98,29 @@ const buttonSizes: Record<
   { container: ViewStyle; text: TextStyle }
 > = {
   sm: {
-    container: { paddingVertical: 8, paddingHorizontal: 16 },
+    container: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
     text: { fontSize: 14 },
   },
   md: {
-    container: { paddingVertical: 12, paddingHorizontal: 24 },
+    container: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 },
     text: { fontSize: 16 },
   },
   lg: {
-    container: { paddingVertical: 16, paddingHorizontal: 32 },
-    text: { fontSize: 18 },
+    container: { paddingVertical: 14, paddingHorizontal: 32, borderRadius: 10 },
+    text: { fontSize: 18, textTransform: "uppercase" },
   },
-};
-
-const buttonVariants: Record<ButtonVariant, ViewStyle> = {
-  default: {},
-  primary: {},
-  destructive: {},
-  outline: {},
 };
 
 const styles = StyleSheet.create({
   base: {
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
     flexDirection: "row",
   },
   textBase: {
-    fontFamily: "Poppins_600SemiBold",
+    fontSize: 14,
+    fontFamily: FontPoppins.REGULAR,
+    textAlign: "center",
   },
   pressed: {
     opacity: 0.8,

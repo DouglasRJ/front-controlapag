@@ -1,3 +1,4 @@
+import { FontPoppins } from "@/constants/font";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import Checkbox from "expo-checkbox";
 import { Control, Controller } from "react-hook-form";
@@ -11,7 +12,7 @@ type Props = {
 };
 
 export function ControlledCheckbox({ control, name, label }: Props) {
-  const checkColor = useThemeColor({}, "tint");
+  const checkColor = useThemeColor({}, "background");
   const borderColor = useThemeColor({}, "tint");
   const errorColor = "#E53E3E";
 
@@ -49,19 +50,17 @@ export function ControlledCheckbox({ control, name, label }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
+  container: {},
   checkboxWrapper: {
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 8,
   },
   label: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontFamily: "Poppins_400Regular",
+    fontSize: 12,
+    fontFamily: FontPoppins.MEDIUM,
   },
   errorText: {
     color: "#E53E3E",

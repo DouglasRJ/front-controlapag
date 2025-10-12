@@ -1,3 +1,4 @@
+import { FontPoppins } from "@/constants/font";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
@@ -11,7 +12,7 @@ type LogoProps = {
 export const Logo = ({ fontSize = 52, showIcon = false }: LogoProps) => {
   const primaryColor = useThemeColor({}, "tint");
 
-  const iconSize = fontSize * 0.6;
+  const iconSize = fontSize * 0.5;
   const containerMarginBottom = fontSize * 0.9;
 
   return (
@@ -60,20 +61,20 @@ const styles = StyleSheet.create({
   },
   titleText: {
     letterSpacing: -1,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: FontPoppins.LIGHT,
   },
   titleTextBold: {
     letterSpacing: -1,
-    fontFamily: "Poppins_700Bold",
+    fontFamily: FontPoppins.SEMIBOLD,
   },
   iconMoney: {
     position: "absolute",
-    top: -25,
-    right: -30,
+    top: -45,
+    right: 0,
   },
   iconPhone: {
     position: "absolute",
-    bottom: -30,
-    left: -40,
+    bottom: -45,
+    left: 5,
   },
 });
