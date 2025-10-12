@@ -1,6 +1,6 @@
+import { Logo } from "@/components/logo";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 
 const COLORS = {
@@ -12,36 +12,7 @@ export default function Home() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.contentWrapper}>
-        <View style={styles.titleContainer}>
-          <ThemedText
-            style={styles.titleText}
-            lightColor={COLORS.primary}
-            darkColor={COLORS.primary}
-          >
-            Controla
-          </ThemedText>
-          <ThemedText
-            style={styles.titleTextBold}
-            lightColor={COLORS.primary}
-            darkColor={COLORS.primary}
-          >
-            PAG
-          </ThemedText>
-          <View style={styles.iconMoney}>
-            <MaterialIcons
-              name="attach-money"
-              size={32}
-              color={COLORS.primary}
-            />
-          </View>
-          <View style={styles.iconPhone}>
-            <MaterialCommunityIcons
-              name="cellphone-message"
-              size={32}
-              color={COLORS.primary}
-            />
-          </View>
-        </View>
+       <Logo showIcon />
 
         <View style={styles.subtitleContainer}>
           <ThemedText
@@ -81,11 +52,13 @@ const styles = StyleSheet.create({
     fontSize: 52,
     letterSpacing: -1,
     fontWeight: "300",
+    color: "#F57418"
   },
   titleTextBold: {
     fontSize: 52,
     letterSpacing: -1,
     fontWeight: "bold",
+    color: "#F57418"
   },
   iconMoney: {
     position: "absolute",
