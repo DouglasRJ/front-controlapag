@@ -2,8 +2,7 @@ import { LoginData, RegisterData } from "@/lib/validators/auth";
 import api from "@/services/api";
 import { User } from "@/types/user";
 import { USER_ROLE } from "@/types/user-role";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { isAxiosError } from "axios";
+import axios from "axios";
 import { router } from "expo-router";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -18,14 +17,14 @@ interface AuthState {
   setUser: (user: User | null) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
+export const useAuthStore = create(
+  persist<AuthState>(
     (set) => ({
       user: null,
       token: null,
       isAuthenticated: false,
 
-      login: async (data: LoginData) => {
+      login: async (data) => {
         try {
           const response = await api.post("/auth", data);
 
@@ -38,66 +37,58 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error("Login failed:", error);
 
-          let apiErrorMessage = "Falha no login. Verifique suas credenciais.";
-          if (isAxiosError(error) && error.response?.data?.message) {
-            apiErrorMessage = error.response.data.message;
-          }
+          const apiErrorMessage =
+            (error as any).response?.data?.message ||
+            "Falha no login. Verifique suas credenciais.";
 
           throw new Error(apiErrorMessage);
         }
       },
 
-      register: async (data: RegisterData) => {
+      register: async (data) => {
         try {
-          let response: any;
-
           switch (data.role) {
             case USER_ROLE.PROVIDER:
               if (!data.providerProfile) {
                 throw new Error("Provider profile is necessary");
               }
-              response = await api.post("/auth/register/provider", {
+              await api.post("/auth/register/provider", {
                 email: data.email,
                 username: data.username,
                 password: data.password,
                 role: data.role,
-                ...data.providerProfile,
+                title: data.providerProfile.title,
+                bio: data.providerProfile.bio,
+                address: data.providerProfile.address,
+                businessPhone: data.providerProfile.businessPhone,
               });
+              router.push("/login");
               break;
 
             case USER_ROLE.CLIENT:
               if (!data.clientProfile) {
                 throw new Error("Client profile is necessary");
               }
-              response = await api.post("/auth/register/client", {
+
+              await api.post("/auth/register/client", {
                 email: data.email,
                 username: data.username,
                 password: data.password,
                 role: data.role,
-                ...data.clientProfile,
+                address: data.clientProfile.address,
+                phone: data.clientProfile.phone,
               });
+              router.push("/login");
               break;
-
             default:
               throw new Error("Invalid Role");
           }
-
-          const { user: registeredUser, accessToken: registeredToken } =
-            response.data;
-          api.defaults.headers.common["Authorization"] =
-            `Bearer ${registeredToken}`;
-          set({
-            user: registeredUser,
-            token: registeredToken,
-            isAuthenticated: true,
-          });
-          router.replace("/(tabs)");
         } catch (error) {
           console.error("Registration failed:", error);
 
           let displayMessage = "Falha no cadastro. Tente novamente.";
 
-          if (isAxiosError(error) && error.response) {
+          if (axios.isAxiosError(error) && error.response) {
             const apiErrorMessage = error.response.data.message;
 
             if (
@@ -125,26 +116,13 @@ export const useAuthStore = create<AuthState>()(
         router.replace("/(auth)/login");
       },
 
-      setUser: (user: User | null) => {
+      setUser: (user) => {
         set({ user });
       },
     }),
     {
-      name: "auth-storage",
-      storage: createJSONStorage(() => AsyncStorage as any),
-      partialize: (state) => ({
-        token: state.token,
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
-      onRehydrateStorage: (state) => {
-        return (restoredState: AuthState | undefined) => {
-          if (restoredState?.token) {
-            api.defaults.headers.common["Authorization"] =
-              `Bearer ${restoredState.token}`;
-          }
-        };
-      },
+      name: "user-storage",
+      storage: createJSONStorage(() => sessionStorage),
     }
   )
 );

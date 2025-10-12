@@ -27,7 +27,7 @@ import {
 } from "@react-navigation/native";
 import { Slot, SplashScreen, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -87,22 +87,8 @@ function InitialLayout() {
   const segments = useSegments();
   const router = useRouter();
 
-  const [isStoreHydrated, setIsStoreHydrated] = useState(false);
-
-  useEffect(() => {
-    const unsubscribe = useAuthStore.persist.onFinishHydration(() => {
-      setIsStoreHydrated(true);
-    });
-
-    if (useAuthStore.persist.hasHydrated()) {
-      setIsStoreHydrated(true);
-    }
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
+  // const isHydrated = useAuthHydration();
+  // console.log("isH", isHydrated);
   useEffect(() => {
     const inAuthGroup = segments[0] === "(auth)";
     if (isAuthenticated && user) {
@@ -120,9 +106,13 @@ function InitialLayout() {
     }
   }, [isAuthenticated, segments, user, router]);
 
-  if (!isStoreHydrated) {
-    return null;
-  }
+  // if (!isHydrated) {
+  //   return (
+  //     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+  //       <ActivityIndicator size="large" />
+  //     </View>
+  //   );
+  // }
 
   return <Slot />;
 }
