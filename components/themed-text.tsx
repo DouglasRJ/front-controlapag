@@ -11,7 +11,8 @@ export type ThemedTextProps = TextProps & {
     | "defaultSemiBold"
     | "subtitle"
     | "link"
-    | "titleNoBold";
+    | "titleNoBold"
+    | "labelInput";
 };
 
 export function ThemedText({
@@ -32,6 +33,7 @@ export function ThemedText({
         type === "defaultSemiBold" ? styles.defaultSemiBold : undefined,
         type === "subtitle" ? styles.subtitle : undefined,
         type === "link" ? styles.link : undefined,
+        type === "labelInput" ? styles.labelInput : undefined,
         style,
       ]}
       {...rest}
@@ -69,5 +71,9 @@ const styles = StyleSheet.create({
     fontSize: 32,
     lineHeight: 32,
     fontFamily: "Poppins_700Bold",
+  },
+  labelInput: {
+    fontSize: 14,
+    fontFamily: "Poppins_500Medium",
   },
 });
