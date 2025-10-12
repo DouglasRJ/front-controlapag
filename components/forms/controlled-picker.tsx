@@ -6,7 +6,7 @@ import { ThemedText } from "../themed-text";
 
 type PickerOption = {
   label: string;
-  value: string | number;
+  value: string | number | undefined;
 };
 
 type ControlledPickerProps = {
@@ -14,6 +14,7 @@ type ControlledPickerProps = {
   name: string;
   label: string;
   options: PickerOption[];
+  placeholder?: string;
 };
 
 export function ControlledPicker({
@@ -21,11 +22,17 @@ export function ControlledPicker({
   name,
   label,
   options,
+  placeholder = "Selecione...",
 }: ControlledPickerProps) {
   const textColor = useThemeColor({}, "tint");
   const borderColor = useThemeColor({}, "tint");
   const errorColor = "#E53E3E";
   const backgroundColor = useThemeColor({}, "text");
+
+  const fullOptions: PickerOption[] = [
+    { label: placeholder, value: undefined },
+    ...options,
+  ];
 
   return (
     <Controller
@@ -52,12 +59,14 @@ export function ControlledPicker({
           >
             <Picker
               style={styles.picker}
-              selectedValue={value}
-              onValueChange={onChange}
+              selectedValue={typeof value === "string" ? value : undefined}
+              onValueChange={(itemValue) => {
+                onChange(itemValue === undefined ? undefined : itemValue);
+              }}
             >
-              {options.map((option) => (
+              {fullOptions.map((option, index) => (
                 <Picker.Item
-                  key={option.value}
+                  key={index}
                   label={option.label}
                   value={option.value}
                 />
@@ -87,7 +96,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 8,
     backgroundColor: "#fff",
-    height: 42,
+    height: 49,
   },
   inputError: {
     borderColor: "#E53E3E",
@@ -97,7 +106,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   picker: {
-    height: 42,
+    height: 49,
     borderRadius: 8,
     borderWidth: 0,
   },

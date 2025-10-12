@@ -1,15 +1,7 @@
-/* Isto diz ao Tailwind para processar as suas diretivas base.
-  Se o seu ficheiro já as tiver, não adicione novamente.
-*/
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* A SOLUÇÃO MANUAL:
-  Aplicamos o padding diretamente ao corpo da página.
-  Usamos 'max' para garantir que há sempre um padding mínimo (ex: 20px)
-  mesmo que o navegador não suporte 'env()'.
-*/
 @layer base {
   html {
     height: -webkit-fill-available;

@@ -12,7 +12,6 @@ type Props = {
 };
 
 export function ControlledCheckbox({ control, name, label }: Props) {
-  const checkColor = useThemeColor({}, "background");
   const borderColor = useThemeColor({}, "tint");
   const errorColor = "#E53E3E";
 
@@ -32,14 +31,14 @@ export function ControlledCheckbox({ control, name, label }: Props) {
           >
             <ThemedText
               type="labelInput"
-              style={[styles.label, { color: checkColor }]}
+              style={[styles.label, { color: borderColor }]}
             >
               {label}
             </ThemedText>
             <Checkbox
               value={!!value}
               onValueChange={onChange}
-              color={value ? checkColor : undefined}
+              color={value ? borderColor : undefined}
             />
           </View>
           {error && <Text style={styles.errorText}>{error.message}</Text>}

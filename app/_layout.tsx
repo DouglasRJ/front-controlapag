@@ -88,11 +88,9 @@ function InitialLayout() {
 
   useEffect(() => {
     const inAuthGroup = segments[0] === "(auth)";
-
-    if (isAuthenticated && !inAuthGroup) {
+    if (isAuthenticated && inAuthGroup) {
       router.replace("/(tabs)");
-    } else if (!isAuthenticated) {
-      router.replace("/(auth)/login");
+    } else if (!isAuthenticated && !inAuthGroup) {
     }
   }, [isAuthenticated, segments]);
 

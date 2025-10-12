@@ -10,12 +10,15 @@ import { LoginData, loginSchema } from "@/lib/validators/auth";
 import { useAuthStore } from "@/store/authStore";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Pressable, StyleSheet, View } from "react-native";
 
 export default function LoginScreen() {
   const { login } = useAuthStore();
+
+  const [loginError, setLoginError] = useState(false);
+
   const cardBackgroundColor = useThemeColor({}, "card");
   const bgColor = useThemeColor({}, "background");
   const linkColor = useThemeColor({}, "tint");
@@ -36,7 +39,7 @@ export default function LoginScreen() {
     try {
       await login(data);
     } catch {
-      alert("Falha no login. Verifique suas credenciais.");
+      setLoginError(true);
     }
   };
 
@@ -68,15 +71,28 @@ export default function LoginScreen() {
             secureTextEntry
           />
 
+          {loginError && (
+            <View style={styles.errorBox}>
+              <ThemedText style={styles.errorTextInternal}>
+                Falha no login. Verifique suas credenciais.
+              </ThemedText>
+            </View>
+          )}
+
           <View style={styles.optionsRow}>
             <ControlledCheckbox
               control={control}
               name="rememberMe"
-              label="Lembrar de mim"
+              label="Lembrar Senha"
             />
             <Link href="/forgot-password" asChild>
               <Pressable>
-                <ThemedText style={[styles.linkText, { color: bgColor }]}>
+                <ThemedText
+                  style={[
+                    styles.linkText,
+                    { color: bgColor, textDecorationLine: "underline" },
+                  ]}
+                >
                   Esqueci a senha
                 </ThemedText>
               </Pressable>
@@ -98,7 +114,12 @@ export default function LoginScreen() {
             </ThemedText>
             <Link href="/register" asChild>
               <Pressable>
-                <ThemedText style={[styles.linkText, { color: linkColor }]}>
+                <ThemedText
+                  style={[
+                    styles.linkText,
+                    { color: linkColor, textDecorationLine: "underline" },
+                  ]}
+                >
                   Cadastre-se
                 </ThemedText>
               </Pressable>
@@ -157,5 +178,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+  },
+  errorBox: {
+    backgroundColor: "#FEE2E2",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#F87171",
+  },
+  errorTextInternal: {
+    color: "#B91C1C",
+    textAlign: "center",
+    fontFamily: FontPoppins.MEDIUM,
+    fontSize: 14,
   },
 });

@@ -11,13 +11,17 @@ import {
   TextInputProps,
   View,
 } from "react-native";
+import MaskInput, { Masks } from "react-native-mask-input";
 import { ThemedText } from "../themed-text";
+
+type MaskType = "phone" | "cpf" | "cnpj" | undefined;
 
 type ControlledInputProps = {
   control: Control<any>;
   name: string;
   label?: string;
   type?: "text" | "password" | "email" | "number" | "textarea";
+  maskType?: MaskType;
 } & TextInputProps;
 
 export function ControlledInput({
@@ -26,9 +30,13 @@ export function ControlledInput({
   label,
   type = "text",
   secureTextEntry,
+  maskType,
   ...textInputProps
 }: ControlledInputProps) {
-  const [isPasswordVisible, setPasswordVisible] = useState(secureTextEntry);
+  const isSecurityField = !!secureTextEntry;
+  const isMaskedInput = !!maskType;
+
+  const [isPasswordVisible, setPasswordVisible] = useState(isSecurityField);
   const textColor = useThemeColor({}, "tint");
   const borderColor = useThemeColor({}, "tint");
   const errorColor = "#E53E3E";
@@ -37,6 +45,21 @@ export function ControlledInput({
   const togglePasswordVisibility = () => {
     setPasswordVisible(!isPasswordVisible);
   };
+
+  const mask = (() => {
+    switch (maskType) {
+      case "phone":
+        return Masks.BRL_PHONE;
+      case "cpf":
+        return Masks.CPF;
+      case "cnpj":
+        return Masks.CNPJ;
+      default:
+        return undefined;
+    }
+  })();
+
+  const InputComponent = mask ? MaskInput : TextInput;
 
   return (
     <Controller
@@ -56,7 +79,7 @@ export function ControlledInput({
             </ThemedText>
           )}
           <View className="relative">
-            <TextInput
+            <InputComponent
               style={[
                 styles.input,
                 {
@@ -68,7 +91,7 @@ export function ControlledInput({
               onBlur={onBlur}
               onChangeText={onChange}
               value={value}
-              secureTextEntry={isPasswordVisible}
+              secureTextEntry={isSecurityField ? isPasswordVisible : false}
               keyboardType={
                 type === "number"
                   ? "numeric"
@@ -78,6 +101,7 @@ export function ControlledInput({
               }
               multiline={type === "textarea"}
               numberOfLines={type === "textarea" ? 4 : 1}
+              {...(isMaskedInput && { mask })}
               {...textInputProps}
             />
             {secureTextEntry && (
