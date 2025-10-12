@@ -27,11 +27,12 @@ import {
 } from "@react-navigation/native";
 import { Slot, SplashScreen, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/store/authStore";
+import { USER_ROLE } from "@/types/user-role";
 import { View } from "react-native";
 import "../global.css";
 
@@ -82,17 +83,46 @@ export default function RootLayout() {
 }
 
 function InitialLayout() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
+  const [isStoreHydrated, setIsStoreHydrated] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = useAuthStore.persist.onFinishHydration(() => {
+      setIsStoreHydrated(true);
+    });
+
+    if (useAuthStore.persist.hasHydrated()) {
+      setIsStoreHydrated(true);
+    }
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     const inAuthGroup = segments[0] === "(auth)";
-    if (isAuthenticated && inAuthGroup) {
-      router.replace("/(tabs)");
-    } else if (!isAuthenticated && !inAuthGroup) {
+    if (isAuthenticated && user) {
+      if (inAuthGroup) {
+        const homePath =
+          user.role === USER_ROLE.PROVIDER
+            ? "/(tabs)/(provider)/services"
+            : "/(tabs)/(client)/charges";
+        router.replace(homePath);
+      }
+    } else if (!isAuthenticated) {
+      if (!inAuthGroup) {
+        router.replace("/(auth)/login");
+      }
     }
-  }, [isAuthenticated, segments]);
+  }, [isAuthenticated, segments, user, router]);
+
+  if (!isStoreHydrated) {
+    return null;
+  }
 
   return <Slot />;
 }
