@@ -7,7 +7,7 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 export default function ProviderLayout() {
   const { user, isAuthenticated } = useAuthStore();
-  console.log("user", user);
+
   const userRole = user?.role;
 
   if (isAuthenticated && !user) {

@@ -7,8 +7,8 @@ import { Button } from "react-native";
 
 export default function TabLayout() {
   const { logout, user } = useAuthStore();
+
   const userRole = user?.role;
-  console.log("user", user);
   const isProvider = userRole === USER_ROLE.PROVIDER;
   const isClient = userRole === USER_ROLE.CLIENT;
 

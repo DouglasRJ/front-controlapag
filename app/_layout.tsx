@@ -30,10 +30,11 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import "react-native-reanimated";
 
+import { useAuthHydration } from "@/hooks/use-auth-hydration";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAuthStore } from "@/store/authStore";
 import { USER_ROLE } from "@/types/user-role";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import "../global.css";
 
 SplashScreen.preventAutoHideAsync();
@@ -87,9 +88,14 @@ function InitialLayout() {
   const segments = useSegments();
   const router = useRouter();
 
-  // const isHydrated = useAuthHydration();
-  // console.log("isH", isHydrated);
+  const isHydrated = useAuthHydration();
+
   useEffect(() => {
+    // A lógica de roteamento só executa se o store já estiver hidratado
+    if (!isHydrated) {
+      return;
+    }
+
     const inAuthGroup = segments[0] === "(auth)";
     if (isAuthenticated && user) {
       if (inAuthGroup) {
@@ -104,15 +110,15 @@ function InitialLayout() {
         router.replace("/(auth)/login");
       }
     }
-  }, [isAuthenticated, segments, user, router]);
+  }, [isAuthenticated, segments, user, router, isHydrated]);
 
-  // if (!isHydrated) {
-  //   return (
-  //     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-  //       <ActivityIndicator size="large" />
-  //     </View>
-  //   );
-  // }
+  if (!isHydrated) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return <Slot />;
 }

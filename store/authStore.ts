@@ -2,10 +2,20 @@ import { LoginData, RegisterData } from "@/lib/validators/auth";
 import api from "@/services/api";
 import { User } from "@/types/user";
 import { USER_ROLE } from "@/types/user-role";
-import axios from "axios";
+import { isAxiosError } from "axios";
 import { router } from "expo-router";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import { createJSONStorage, persist, StateStorage } from "zustand/middleware";
+
+const dummyStorage: StateStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+};
+
+const storage = createJSONStorage<AuthState>(() =>
+  typeof window !== "undefined" ? window.sessionStorage : dummyStorage
+);
 
 interface AuthState {
   user: User | null;
@@ -88,7 +98,7 @@ export const useAuthStore = create(
 
           let displayMessage = "Falha no cadastro. Tente novamente.";
 
-          if (axios.isAxiosError(error) && error.response) {
+          if (isAxiosError(error) && error.response) {
             const apiErrorMessage = error.response.data.message;
 
             if (
@@ -122,7 +132,7 @@ export const useAuthStore = create(
     }),
     {
       name: "user-storage",
-      storage: createJSONStorage(() => sessionStorage),
+      storage: storage,
     }
   )
 );
