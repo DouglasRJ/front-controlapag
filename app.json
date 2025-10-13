@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "controlapag-ui",
+    "name": "ControlaPAG",
     "slug": "controlapag-ui",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -23,6 +23,7 @@
     },
     "web": {
       "bundler": "metro",
+      "name": "ControlaPAG",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [

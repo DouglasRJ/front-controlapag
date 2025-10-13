@@ -28,7 +28,7 @@ export default function ProviderLayout() {
 
   return (
     <Stack>
-      <Stack.Screen name="services" options={{ title: "Meus Serviços" }} />
+      <Stack.Screen name="services" options={{ headerShown: false }} />
     </Stack>
   );
 }
