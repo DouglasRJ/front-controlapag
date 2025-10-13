@@ -1,12 +1,9 @@
 import { CustomHeader } from "@/components/custom-header";
 import { DashboardMetrics } from "@/components/dashboard/dashboard-metrics";
 import { ThemedView } from "@/components/themed-view";
-import { useAuthStore } from "@/store/authStore";
 import { StyleSheet, View } from "react-native";
 
 export default function ProviderServicesScreen() {
-  const { user } = useAuthStore();
-
   return (
     <ThemedView style={styles.pageContainer}>
       <CustomHeader />

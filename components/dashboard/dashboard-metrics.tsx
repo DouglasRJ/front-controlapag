@@ -1,3 +1,4 @@
+import { useAuthHydration } from "@/hooks/use-auth-hydration";
 import api from "@/services/api";
 import { OperationalMetrics } from "@/types/operational-metrics";
 import React, { useEffect, useState } from "react";
@@ -13,8 +14,12 @@ export function DashboardMetrics() {
   const [metrics, setMetrics] = useState<OperationalMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isHydrated = useAuthHydration();
 
   useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
     const fetchMetrics = async () => {
       try {
         setLoading(true);
@@ -31,7 +36,7 @@ export function DashboardMetrics() {
     };
 
     fetchMetrics();
-  }, []);
+  }, [isHydrated]);
 
   if (loading) {
     return (

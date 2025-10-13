@@ -1,4 +1,8 @@
-// app/_layout.tsx
+import { useAuthHydration } from "@/hooks/use-auth-hydration";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import api from "@/services/api";
+import { useAuthStore } from "@/store/authStore";
+import { USER_ROLE } from "@/types/user-role";
 import {
   Poppins_100Thin,
   Poppins_100Thin_Italic,
@@ -28,13 +32,8 @@ import {
 import { Slot, SplashScreen, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import "react-native-reanimated";
-
-import { useAuthHydration } from "@/hooks/use-auth-hydration";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useAuthStore } from "@/store/authStore";
-import { USER_ROLE } from "@/types/user-role";
 import { ActivityIndicator, View } from "react-native";
+import "react-native-reanimated";
 import "../global.css";
 
 SplashScreen.preventAutoHideAsync();
@@ -64,6 +63,26 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
+    const initialToken = useAuthStore.getState().token;
+    if (initialToken) {
+      api.defaults.headers.common["Authorization"] = `Bearer ${initialToken}`;
+    }
+
+    const unsubscribe = useAuthStore.subscribe((state) => {
+      const token = state.token;
+      if (token) {
+        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      } else {
+        delete api.defaults.headers.common["Authorization"];
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
@@ -91,7 +110,6 @@ function InitialLayout() {
   const isHydrated = useAuthHydration();
 
   useEffect(() => {
-    // A lógica de roteamento só executa se o store já estiver hidratado
     if (!isHydrated) {
       return;
     }
