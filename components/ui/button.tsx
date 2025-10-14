@@ -11,13 +11,14 @@ import {
 } from "react-native";
 
 type ButtonVariant = "default" | "primary" | "destructive" | "outline" | "link";
-type ButtonSize = "sm" | "md" | "lg";
+type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 type ButtonProps = {
   title: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
   style?: ViewStyle;
+  customColor?: string;
 } & PressableProps;
 
 export function Button({
@@ -25,9 +26,9 @@ export function Button({
   variant = "default",
   size = "md",
   style,
+  customColor,
   ...pressableProps
 }: ButtonProps) {
-  // Cores baseadas no tema
   const tintColor = useThemeColor({}, "tint");
   const textColorPrimary = useThemeColor({}, "text");
   const backgroundColor = useThemeColor({}, "background");
@@ -53,10 +54,10 @@ export function Button({
         return {
           container: {
             backgroundColor: "transparent",
-            borderColor: tintColor,
+            borderColor: customColor ?? tintColor,
             borderWidth: 1,
           },
-          text: { color: tintColor },
+          text: { color: customColor ?? tintColor },
         };
       case "link":
         return {
@@ -97,13 +98,17 @@ const buttonSizes: Record<
   ButtonSize,
   { container: ViewStyle; text: TextStyle }
 > = {
+  xs: {
+    container: { height: 20, paddingHorizontal: 8, borderRadius: 6 },
+    text: { fontSize: 8, fontFamily: FontPoppins.MEDIUM },
+  },
   sm: {
     container: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 6 },
     text: { fontSize: 14 },
   },
   md: {
-    container: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8 },
-    text: { fontSize: 16 },
+    container: { paddingVertical: 10, paddingHorizontal: 10, borderRadius: 6 },
+    text: { fontSize: 10, fontFamily: FontPoppins.BOLD },
   },
   lg: {
     container: { paddingVertical: 14, paddingHorizontal: 32, borderRadius: 10 },

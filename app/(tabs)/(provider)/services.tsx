@@ -1,5 +1,7 @@
 import { CustomHeader } from "@/components/custom-header";
 import { DashboardMetrics } from "@/components/dashboard/dashboard-metrics";
+import { EnrollmentsCard } from "@/components/enrollmentsCard";
+import { ServicesCard } from "@/components/servicesCard";
 import { ThemedView } from "@/components/themed-view";
 import { StyleSheet, View } from "react-native";
 
@@ -9,6 +11,8 @@ export default function ProviderServicesScreen() {
       <CustomHeader />
       <View style={styles.container}>
         <DashboardMetrics />
+        <ServicesCard />
+        <EnrollmentsCard />
       </View>
     </ThemedView>
   );

@@ -1,14 +1,11 @@
 import { useAuthHydration } from "@/hooks/use-auth-hydration";
 import api from "@/services/api";
 import { OperationalMetrics } from "@/types/operational-metrics";
+import { formatCurrency } from "@/utils/format-currency";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { ThemedText } from "../themed-text";
 import { MetricCard } from "./metric-card";
-
-const formatCurrency = (value: number) => {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-};
 
 export function DashboardMetrics() {
   const [metrics, setMetrics] = useState<OperationalMetrics | null>(null);

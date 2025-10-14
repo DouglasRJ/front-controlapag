@@ -1,4 +1,5 @@
 import { Enrollments } from "./enrollments";
+import { User } from "./user";
 
 export interface Client {
   id: string;
@@ -8,4 +9,5 @@ export interface Client {
   updatedAt: Date;
   paymentCustomerId?: string;
   enrollments: Enrollments[];
+  user?: User;
 }

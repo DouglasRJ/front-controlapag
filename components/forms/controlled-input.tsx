@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Control, Controller } from "react-hook-form";
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -87,6 +88,7 @@ export function ControlledInput({
                   backgroundColor: backgroundColor,
                 },
                 type === "textarea" && styles.textarea,
+                Platform.OS === "web" && { outline: "none" },
               ]}
               onBlur={onBlur}
               onChangeText={onChange}
@@ -139,7 +141,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: "#242120",
-    fontFamily: "Poppins_400Regular",
+    fontFamily: FontPoppins.REGULAR,
   },
   textarea: {
     height: 120,

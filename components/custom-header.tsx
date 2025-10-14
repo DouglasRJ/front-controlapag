@@ -13,8 +13,6 @@ export function CustomHeader() {
   const iconMenuColor = useThemeColor({}, "tint");
   const backgroundColor = useThemeColor({}, "background");
 
-  console.log("user", user);
-
   const roleText = user?.role === USER_ROLE.PROVIDER ? "Prestador" : "Cliente";
 
   const handleMenuPress = () => {
