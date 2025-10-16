@@ -3,17 +3,19 @@ import { DashboardMetrics } from "@/components/dashboard/dashboard-metrics";
 import { EnrollmentsCard } from "@/components/enrollmentsCard";
 import { ServicesCard } from "@/components/servicesCard";
 import { ThemedView } from "@/components/themed-view";
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 
 export default function ProviderServicesScreen() {
   return (
     <ThemedView style={styles.pageContainer}>
       <CustomHeader />
-      <View style={styles.container}>
-        <DashboardMetrics />
-        <ServicesCard />
-        <EnrollmentsCard />
-      </View>
+      <ScrollView style={{ width: "100%", paddingBottom: 80 }}>
+        <View style={styles.container}>
+          <DashboardMetrics />
+          <ServicesCard />
+          <EnrollmentsCard />
+        </View>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -23,7 +25,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexGrow: 1,
     alignItems: "center",
-    paddingTop: 80,
+    paddingTop: 20,
   },
   container: {
     alignItems: "center",

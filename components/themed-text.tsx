@@ -5,6 +5,15 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
+  color?:
+    | "text"
+    | "background"
+    | "tint"
+    | "icon"
+    | "tabIconDefault"
+    | "tabIconSelected"
+    | "card"
+    | "border";
   type?:
     | "default"
     | "title"
@@ -20,14 +29,18 @@ export function ThemedText({
   lightColor,
   darkColor,
   type = "default",
+  color = "text",
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, "text");
+  const colorText = useThemeColor(
+    { light: lightColor, dark: darkColor },
+    color
+  );
 
   return (
     <Text
       style={[
-        { color },
+        { color: colorText },
         type === "default" ? styles.default : undefined,
         type === "title" ? styles.title : undefined,
         type === "defaultSemiBold" ? styles.defaultSemiBold : undefined,

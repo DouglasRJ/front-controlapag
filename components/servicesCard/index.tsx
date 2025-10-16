@@ -6,6 +6,7 @@ import api from "@/services/api";
 import { Service } from "@/types/service";
 import { formatCurrency } from "@/utils/format-currency";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { ThemedText } from "../themed-text";
@@ -55,6 +56,10 @@ export function ServicesCard() {
     { label: "Inativos", value: "inactives" },
   ];
 
+  const handleNewService = () => {
+    router.navigate("/(tabs)/(provider)/services/create");
+  };
+
   if (loading) {
     return (
       <View>
@@ -80,7 +85,7 @@ export function ServicesCard() {
             Gerencie seus serviços
           </ThemedText>
         </View>
-        <Button title="+ Novo Serviço" size="md" />
+        <Button onPress={handleNewService} title="+ Novo Serviço" size="md" />
       </View>
       {services.length ? (
         <>

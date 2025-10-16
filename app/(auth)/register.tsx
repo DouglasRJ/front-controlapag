@@ -1,5 +1,5 @@
 import { ControlledInput } from "@/components/forms/controlled-input";
-import { ControlledPicker } from "@/components/forms/controlled-picker";
+import { ControlledSelect } from "@/components/forms/controlled-select";
 import { Logo } from "@/components/logo";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -187,7 +187,7 @@ export default function RegisterScreen() {
         secureTextEntry
         autoComplete="off"
       />
-      <ControlledPicker
+      <ControlledSelect
         control={control}
         name="role"
         label="Tipo de Conta"

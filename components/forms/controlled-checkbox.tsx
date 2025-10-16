@@ -1,4 +1,3 @@
-import { FontPoppins } from "@/constants/font";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import Checkbox from "expo-checkbox";
 import { Control, Controller } from "react-hook-form";
@@ -57,10 +56,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 8,
   },
-  label: {
-    fontSize: 12,
-    fontFamily: FontPoppins.MEDIUM,
-  },
+  label: {},
   errorText: {
     color: "#E53E3E",
     marginTop: 4,
