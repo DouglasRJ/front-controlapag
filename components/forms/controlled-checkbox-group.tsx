@@ -15,6 +15,7 @@ type ControlledCheckboxGroupProps = {
   name: string;
   label: string;
   options: Option[];
+  disabled?: boolean;
 };
 
 export function ControlledCheckboxGroup({
@@ -22,6 +23,7 @@ export function ControlledCheckboxGroup({
   name,
   label,
   options,
+  disabled,
 }: ControlledCheckboxGroupProps) {
   const tintColor = useThemeColor({}, "tint");
   const textColor = useThemeColor({}, "text");
@@ -56,6 +58,7 @@ export function ControlledCheckboxGroup({
             textStyle={{ color: textColor, textDecorationLine: "none" }}
             iconStyle={{ borderColor: tintColor }}
             innerIconStyle={{ borderWidth: 2 }}
+            disabled={disabled}
           />
         ))}
       </View>

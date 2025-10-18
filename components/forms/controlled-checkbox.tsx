@@ -8,9 +8,15 @@ type Props = {
   control: Control<any>;
   name: string;
   label: string;
+  disabled?: boolean;
 };
 
-export function ControlledCheckbox({ control, name, label }: Props) {
+export function ControlledCheckbox({
+  control,
+  name,
+  label,
+  disabled = false,
+}: Props) {
   const borderColor = useThemeColor({}, "tint");
   const errorColor = "#E53E3E";
 
@@ -38,6 +44,7 @@ export function ControlledCheckbox({ control, name, label }: Props) {
               value={!!value}
               onValueChange={onChange}
               color={value ? borderColor : undefined}
+              disabled={disabled}
             />
           </View>
           {error && <Text style={styles.errorText}>{error.message}</Text>}

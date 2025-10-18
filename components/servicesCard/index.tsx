@@ -7,11 +7,23 @@ import { Service } from "@/types/service";
 import { formatCurrency } from "@/utils/format-currency";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { ThemedText } from "../themed-text";
 import { Button } from "../ui/button";
 import { SearchInput } from "../ui/search-input";
+
+const debounce = (func: (...args: any[]) => void, delay: number) => {
+  let timeoutId: NodeJS.Timeout;
+  const debounced = (...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      func(...args);
+    }, delay);
+  };
+  (debounced as any).cancel = () => clearTimeout(timeoutId);
+  return debounced;
+};
 
 export function ServicesCard() {
   const cardColor = useThemeColor({}, "card");
@@ -30,25 +42,65 @@ export function ServicesCard() {
 
   const isHydrated = useAuthHydration();
 
-  useEffect(() => {
-    if (!isHydrated) {
-      return;
-    }
-    const fetchMetrics = async () => {
+  const fetchServices = useCallback(
+    async (query: string, status: string) => {
+      if (!isHydrated) return;
+
       try {
         setLoading(true);
-        const response = await api.get<Service[]>("/provider/services");
+        setError(null);
+
+        let isActiveFilter: boolean | undefined;
+        if (status === "actives") {
+          isActiveFilter = true;
+        } else if (status === "inactives") {
+          isActiveFilter = false;
+        }
+
+        const params = {
+          q: query || undefined,
+          isActive: isActiveFilter !== undefined ? isActiveFilter : undefined,
+        };
+
+        const response = await api.get<Service[]>("/provider/services", {
+          params,
+        });
+
         setServices(response.data);
       } catch (err) {
-        setError("Não foi possível carregar as métricas.");
+        setError("Não foi possível carregar ou buscar os serviços.");
         console.error(err);
       } finally {
         setLoading(false);
       }
-    };
+    },
+    [isHydrated]
+  );
 
-    fetchMetrics();
-  }, [isHydrated]);
+  const debouncedFetchServices = useCallback(
+    debounce((query, status) => fetchServices(query, status), 500),
+    [fetchServices]
+  );
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    if (searchQuery) {
+      debouncedFetchServices(searchQuery, searchOption);
+    } else {
+      fetchServices(searchQuery, searchOption);
+    }
+
+    return () => {
+      (debouncedFetchServices as any).cancel();
+    };
+  }, [
+    isHydrated,
+    searchQuery,
+    searchOption,
+    fetchServices,
+    debouncedFetchServices,
+  ]);
 
   const optionsSearch = [
     { label: "Todos", value: "all" },
@@ -60,13 +112,9 @@ export function ServicesCard() {
     router.navigate("/(tabs)/(provider)/services/create");
   };
 
-  if (loading) {
-    return (
-      <View>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+  const handleSearchOptionChange = (optionValue: string) => {
+    setSearchOption(optionValue);
+  };
 
   if (error) {
     return (
@@ -75,6 +123,9 @@ export function ServicesCard() {
       </View>
     );
   }
+
+  const showServiceList =
+    services.length > 0 || searchQuery || searchOption !== "all";
 
   return (
     <ThemedView style={[styles.card]}>
@@ -87,39 +138,56 @@ export function ServicesCard() {
         </View>
         <Button onPress={handleNewService} title="+ Novo Serviço" size="md" />
       </View>
-      {services.length ? (
-        <>
-          <View style={styles.searchContainer}>
-            <SearchInput
-              placeholder="Buscar serviços..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
+
+      <View style={styles.searchContainer}>
+        <SearchInput
+          placeholder="Buscar serviços..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        <View style={styles.optionsSearch}>
+          {optionsSearch.map((option) => (
+            <Button
+              variant={searchOption === option.value ? "default" : "outline"}
+              key={option.value}
+              title={option.label}
+              onPress={() => handleSearchOptionChange(option.value)}
+              size="xs"
+              customColor={textColor}
             />
-            <View style={styles.optionsSearch}>
-              {optionsSearch.map((option) => (
-                <Button
-                  variant={
-                    searchOption === option.value ? "default" : "outline"
-                  }
-                  key={option.value}
-                  title={option.label}
-                  onPress={() => setSearchOption(option.value)}
-                  size="xs"
-                  customColor={textColor}
-                />
-              ))}
-            </View>
-          </View>
-          <View>
-            {services.map((service) => (
-              <ServiceCard key={service.id} service={service} />
-            ))}
-          </View>
-        </>
+          ))}
+        </View>
+      </View>
+
+      {/* O indicador de loading afeta APENAS o bloco da lista abaixo do input */}
+      {loading ? (
+        <View style={{ paddingVertical: 20 }}>
+          <ActivityIndicator size="large" />
+        </View>
       ) : (
-        <ThemedText style={[styles.cardSubTitle]}>
-          Nenhum serviço cadastrado
-        </ThemedText>
+        <View>
+          {showServiceList ? (
+            <>
+              {services.map((service) => (
+                <ServiceCard key={service.id} service={service} />
+              ))}
+              {!services.length && (
+                <ThemedText
+                  style={[
+                    styles.cardSubTitle,
+                    { textAlign: "center", marginTop: 20 },
+                  ]}
+                >
+                  Nenhum serviço encontrado com a busca e filtros aplicados.
+                </ThemedText>
+              )}
+            </>
+          ) : (
+            <ThemedText style={[styles.cardSubTitle]}>
+              Nenhum serviço cadastrado
+            </ThemedText>
+          )}
+        </View>
       )}
     </ThemedView>
   );
@@ -136,13 +204,24 @@ const ServiceCard = ({ service }: { service: Service }) => {
     [cardColor, iconColor, textColor, borderGrayColor]
   );
 
+  const handleGoToService = () => {
+    router.replace(`/services/${service.id}`);
+  };
+
   return (
     <View style={styles.cardService}>
       <View style={styles.cardServiceHeader}>
         <Text style={styles.cardServiceTitle}>{service.name}</Text>
         <View style={styles.headerIcons}>
-          <Ionicons name="eye-outline" size={18} color={textColor} />
           <Ionicons
+            style={styles.icon}
+            name="eye-outline"
+            size={18}
+            color={textColor}
+            onPress={handleGoToService}
+          />
+          <Ionicons
+            style={styles.icon}
             name="ellipsis-horizontal-outline"
             size={18}
             color={textColor}
@@ -158,9 +237,11 @@ const ServiceCard = ({ service }: { service: Service }) => {
         </View>
 
         <View style={styles.serviceData}>
-          <Text style={styles.value}>{service?.enrollments?.length}</Text>
+          <Text style={styles.value}>{service?.enrollments?.length || 0}</Text>
           <Text style={styles.textValue}>
-            {service?.enrollments?.length > 1 ? "agendamentos" : "agendamento"}
+            {service?.enrollments?.length === 1
+              ? "agendamento"
+              : "agendamentos"}
           </Text>
         </View>
       </View>
@@ -257,5 +338,8 @@ const getStyles = (colors: {
       color: colors.textColor,
       fontFamily: FontPoppins.LIGHT,
       fontSize: 10,
+    },
+    icon: {
+      cursor: "pointer",
     },
   });

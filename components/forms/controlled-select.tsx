@@ -18,6 +18,7 @@ type ControlledSelectProps = {
   options: Option[];
   placeholder?: string;
   isMultiple?: boolean;
+  disabled?: boolean;
 };
 
 export function ControlledSelect({
@@ -27,6 +28,7 @@ export function ControlledSelect({
   options,
   placeholder,
   isMultiple = false,
+  disabled = false,
 }: ControlledSelectProps) {
   const { field } = useController({
     control,
@@ -82,6 +84,7 @@ export function ControlledSelect({
         placeholderStyle={{ color: borderColor }}
         zIndex={3000}
         zIndexInverse={1000}
+        disabled={disabled}
       />
     </View>
   );

@@ -10,11 +10,26 @@ import {
   View,
 } from "react-native";
 
-type SearchInputProps = TextInputProps;
+type SearchInputProps = TextInputProps & {
+  onSearch?: (query: string) => void;
+  value: string;
+};
 
-export function SearchInput({ style, ...rest }: SearchInputProps) {
+export function SearchInput({
+  style,
+  onSearch,
+  value,
+  onChangeText,
+  ...rest
+}: SearchInputProps) {
   const iconColor = useThemeColor({}, "background");
   const borderColor = useThemeColor({}, "icon");
+
+  const handleSearchSubmit = () => {
+    if (onSearch && value) {
+      onSearch(value.trim());
+    }
+  };
 
   return (
     <View style={[styles.container, { borderBottomColor: borderColor }]}>
@@ -27,6 +42,10 @@ export function SearchInput({ style, ...rest }: SearchInputProps) {
           Platform.OS === "web" && { outline: "none" },
         ]}
         placeholderTextColor={iconColor}
+        value={value}
+        onChangeText={onChangeText}
+        onSubmitEditing={handleSearchSubmit}
+        returnKeyType="search"
         {...rest}
       />
     </View>
@@ -48,6 +67,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FontPoppins.REGULAR,
     height: 30,
+    // @ts-ignore
     outline: "none",
   },
 });

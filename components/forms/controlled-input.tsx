@@ -23,6 +23,7 @@ type ControlledInputProps = {
   label?: string;
   type?: "text" | "password" | "email" | "number" | "textarea";
   maskType?: MaskType;
+  disabled?: boolean;
 } & TextInputProps;
 
 export function ControlledInput({
@@ -32,6 +33,7 @@ export function ControlledInput({
   type = "text",
   secureTextEntry,
   maskType,
+  disabled = false,
   ...textInputProps
 }: ControlledInputProps) {
   const isSecurityField = !!secureTextEntry;
@@ -103,6 +105,7 @@ export function ControlledInput({
               }
               multiline={type === "textarea"}
               numberOfLines={type === "textarea" ? 4 : 1}
+              editable={!disabled}
               {...(isMaskedInput && { mask })}
               {...textInputProps}
             />
