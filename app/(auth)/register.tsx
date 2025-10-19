@@ -4,12 +4,13 @@ import { Logo } from "@/components/logo";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { FontPoppins } from "@/constants/font";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { RegisterData, registerSchema } from "@/lib/validators/auth";
+import { registerSchema } from "@/lib/validators/auth";
 import { useAuthStore } from "@/store/authStore";
 import { USER_ROLE } from "@/types/user-role";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -28,15 +29,16 @@ const initialProviderProfile = {
 };
 const initialClientProfile = { phone: "", address: "" };
 
+const MAX_PROVIDER_STEPS = 5;
+const MAX_CLIENT_STEPS = 4;
+
 export default function RegisterScreen() {
   const { register } = useAuthStore();
 
-  const cardBackgroundColor = useThemeColor({}, "card");
-  const bgColor = useThemeColor({}, "background");
   const linkColor = useThemeColor({}, "tint");
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registerError, setRegisterError] = useState(null);
 
   const {
     control,
@@ -47,7 +49,7 @@ export default function RegisterScreen() {
     setValue,
     getValues,
     formState: { isSubmitting, errors },
-  } = useForm<RegisterData>({
+  } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       email: "",
@@ -62,6 +64,11 @@ export default function RegisterScreen() {
   });
 
   const role = watch("role");
+  const password = watch("password");
+  const confirmPassword = watch("confirmPassword");
+
+  const maxSteps =
+    role === USER_ROLE.PROVIDER ? MAX_PROVIDER_STEPS : MAX_CLIENT_STEPS;
 
   useEffect(() => {
     if (role === USER_ROLE.PROVIDER) {
@@ -78,48 +85,78 @@ export default function RegisterScreen() {
   }, [role, setValue, getValues]);
 
   const handleNextStep = async () => {
-    const fieldsToValidate: (keyof RegisterData)[] = [
-      "username",
-      "email",
-      "password",
-      "confirmPassword",
-      "role",
-    ];
+    setRegisterError(null);
+    let fieldsToValidate = [];
+    let shouldProceed = true;
 
-    console.log("getValues", getValues());
+    switch (currentStep) {
+      case 1:
+        fieldsToValidate = ["username", "email"];
+        break;
+      case 2:
+        fieldsToValidate = ["password", "confirmPassword"];
 
-    const isValid = await trigger(fieldsToValidate as any, {
-      shouldFocus: true,
-    });
+        if (password !== confirmPassword) {
+          setError("confirmPassword", {
+            type: "manual",
+            message: "As senhas não coincidem",
+          });
+          shouldProceed = false;
+        } else {
+          setError("confirmPassword", { type: "manual", message: undefined });
+        }
+        break;
+      case 3:
+        fieldsToValidate = ["role"];
+        break;
+      case 4:
+        if (role === USER_ROLE.PROVIDER) {
+          fieldsToValidate = [
+            "providerProfile.title",
+            "providerProfile.businessPhone",
+            "providerProfile.address",
+          ];
+        } else if (role === USER_ROLE.CLIENT) {
+          fieldsToValidate = ["clientProfile.phone", "clientProfile.address"];
+        } else {
+          shouldProceed = false;
+        }
+        break;
+      case 5:
+        if (role === USER_ROLE.PROVIDER) {
+          fieldsToValidate = ["providerProfile.bio"];
+        }
+        break;
+      default:
+        return;
+    }
+
+    if (!shouldProceed) {
+      return;
+    }
+
+    const isValid = await trigger(fieldsToValidate, { shouldFocus: true });
 
     if (isValid) {
-      setCurrentStep(currentStep + 1);
-      setRegisterError(null);
+      if (currentStep === MAX_CLIENT_STEPS && role === USER_ROLE.CLIENT) {
+        handleFinalSubmit(getValues());
+      } else if (currentStep < MAX_PROVIDER_STEPS) {
+        setCurrentStep(currentStep + 1);
+      }
     }
   };
 
-  const handleFinalSubmit = handleSubmit(async (data: RegisterData) => {
+  const handleFinalSubmit = handleSubmit(async (data) => {
     setRegisterError(null);
-    let fieldsToValidateStep2: (keyof RegisterData)[] = [];
 
-    if (data.role === USER_ROLE.PROVIDER) {
-      fieldsToValidateStep2 = [
-        "providerProfile.title",
-        "providerProfile.businessPhone",
-        "providerProfile.bio",
-        "providerProfile.address",
-      ] as any;
-    } else if (data.role === USER_ROLE.CLIENT) {
-      fieldsToValidateStep2 = [
-        "clientProfile.phone",
-        "clientProfile.address",
-      ] as any;
+    let isStepFinalValid = true;
+    if (role === USER_ROLE.PROVIDER && currentStep < MAX_PROVIDER_STEPS) {
+      isStepFinalValid = await trigger(["providerProfile.bio"], {
+        shouldFocus: true,
+      });
     }
 
-    const isStep2Valid = await trigger(fieldsToValidateStep2, {
-      shouldFocus: true,
-    });
-    if (!isStep2Valid) {
+    if (!isStepFinalValid) {
       return;
     }
 
@@ -132,7 +169,7 @@ export default function RegisterScreen() {
       }
 
       await register(dataToSend);
-    } catch (error: any) {
+    } catch (error) {
       const errorMessage = error.message;
 
       if (errorMessage === "Este email já está em uso.") {
@@ -149,12 +186,25 @@ export default function RegisterScreen() {
   });
 
   const handlePreviousStep = () => {
-    setCurrentStep(currentStep - 1);
+    if (currentStep === MAX_PROVIDER_STEPS && role === USER_ROLE.CLIENT) {
+      setCurrentStep(MAX_CLIENT_STEPS);
+    } else {
+      setCurrentStep(currentStep - 1);
+    }
     setRegisterError(null);
   };
 
   const Step1Content = (
     <>
+      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
+        <Ionicons
+          name="person-circle-outline"
+          size={20}
+          color="#FF6B35"
+          className="mr-2"
+        />{" "}
+        Identificação Básica
+      </ThemedText>
       <ControlledInput
         control={control}
         name="username"
@@ -171,6 +221,20 @@ export default function RegisterScreen() {
         autoCapitalize="none"
         autoComplete="off"
       />
+    </>
+  );
+
+  const Step2Content = (
+    <>
+      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
+        <Ionicons
+          name="lock-closed-outline"
+          size={20}
+          color="#FF6B35"
+          className="mr-2"
+        />{" "}
+        Segurança da Conta
+      </ThemedText>
       <ControlledInput
         control={control}
         name="password"
@@ -187,6 +251,23 @@ export default function RegisterScreen() {
         secureTextEntry
         autoComplete="off"
       />
+    </>
+  );
+
+  const Step3Content = (
+    <>
+      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
+        <Ionicons
+          name="briefcase-outline"
+          size={20}
+          color="#FF6B35"
+          className="mr-2"
+        />{" "}
+        Tipo de Conta
+      </ThemedText>
+      <ThemedText className="text-base font-semibold text-gray-800 mt-2 mb-1">
+        Qual seu objetivo?
+      </ThemedText>
       <ControlledSelect
         control={control}
         name="role"
@@ -196,9 +277,17 @@ export default function RegisterScreen() {
     </>
   );
 
-  const Step2ProviderContent = (
+  const Step4ProviderContent = (
     <>
-      <ThemedText style={styles.sectionTitle}>Detalhes do Prestador</ThemedText>
+      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
+        <Ionicons
+          name="business-outline"
+          size={20}
+          color="#FF6B35"
+          className="mr-2"
+        />{" "}
+        Detalhes do Prestador
+      </ThemedText>
       <ControlledInput
         control={control}
         name="providerProfile.title"
@@ -217,15 +306,6 @@ export default function RegisterScreen() {
       />
       <ControlledInput
         control={control}
-        name="providerProfile.bio"
-        label="Biografia / Sobre Você"
-        placeholder="Descreva brevemente seus serviços"
-        type="textarea"
-        autoComplete="off"
-      />
-
-      <ControlledInput
-        control={control}
         name="providerProfile.address"
         label="Endereço"
         placeholder="Rua, número, bairro"
@@ -233,9 +313,17 @@ export default function RegisterScreen() {
     </>
   );
 
-  const Step2ClientContent = (
+  const Step4ClientContent = (
     <>
-      <ThemedText style={styles.sectionTitle}>Detalhes do Cliente</ThemedText>
+      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
+        <Ionicons
+          name="person-circle-outline"
+          size={20}
+          color="#FF6B35"
+          className="mr-2"
+        />{" "}
+        Detalhes do Cliente
+      </ThemedText>
       <ControlledInput
         control={control}
         name="clientProfile.phone"
@@ -253,91 +341,156 @@ export default function RegisterScreen() {
     </>
   );
 
-  const selectedRole = getValues("role");
+  const Step5Content = (
+    <>
+      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
+        <Ionicons
+          name="document-text-outline"
+          size={20}
+          color="#FF6B35"
+          className="mr-2"
+        />{" "}
+        Sobre Você
+      </ThemedText>
+      <ControlledInput
+        control={control}
+        name="providerProfile.bio"
+        label="Biografia / Sobre Você"
+        placeholder="Descreva brevemente seus serviços e experiência"
+        type="textarea"
+        autoComplete="off"
+      />
+    </>
+  );
 
-  const selectedProfileContent =
-    selectedRole === USER_ROLE.PROVIDER
-      ? Step2ProviderContent
-      : Step2ClientContent;
+  const currentMaxSteps =
+    role === USER_ROLE.PROVIDER ? MAX_PROVIDER_STEPS : MAX_CLIENT_STEPS;
+
+  const stepContents = [
+    Step1Content,
+    Step2Content,
+    Step3Content,
+    role === USER_ROLE.PROVIDER ? Step4ProviderContent : Step4ClientContent,
+    role === USER_ROLE.PROVIDER ? Step5Content : null,
+  ].filter((content) => content !== null);
 
   return (
-    <ThemedView style={styles.pageContainer}>
-      <View style={[styles.card, { backgroundColor: cardBackgroundColor }]}>
-        <View style={styles.header}>
-          <Logo fontSize={36} />
-          <ThemedText style={styles.subtitle}>
+    <ThemedView className="flex-1 justify-center items-center md:p-4">
+      <LinearGradient
+        colors={["#242120", "#2d2d2d", "#242120"]}
+        style={StyleSheet.absoluteFillObject}
+      />
+
+      <View className="hidden md:block absolute w-[250px] h-[250px] rounded-full bg-orange-500/5 top-[-80px] right-[-60px]" />
+      <View className="hidden md:block absolute w-[180px] h-[180px] rounded-full bg-orange-500/5 bottom-[-40px] left-[-50px]" />
+      <View className="hidden md:block absolute w-[120px] h-[120px] rounded-full bg-orange-500/5 top-[40%] left-[-30px]" />
+
+      <View
+        className={`
+          w-full bg-card overflow-hidden flex-1 mb-12 
+          md:max-w-xl rounded-3xl md:shadow-2xl md:elevation-10 md:max-h-[80%]
+        `}
+      >
+        <View className="h-3 bg-primary" />
+
+        <View className="items-center py-4 px-4 md:px-5 md:pt-6 md:pb-4">
+          <View className="mb-4 w-9 h-9 rounded-lg bg-primary items-center justify-center">
+            <MaterialIcons
+              name="attach-money"
+              size={20}
+              className="text-white"
+            />
+          </View>
+          <Logo fontSize={24} />
+          <ThemedText className="my-3 text-sm text-gray-600 text-center leading-relaxed">
             Crie uma conta para gerenciar seus serviços
           </ThemedText>
-          <ThemedText style={styles.stepIndicator}>
-            Etapa {currentStep} de 2
+
+          <View className="flex-row items-center mt-3 mb-1">
+            {Array.from({ length: currentMaxSteps }).map((_, index) => (
+              <React.Fragment key={index}>
+                <View
+                  className={`w-2.5 h-2.5 rounded-full ${currentStep >= index + 1 ? "bg-primary" : "bg-gray-200"}`}
+                />
+                {index < currentMaxSteps - 1 && (
+                  <View className="w-4 h-0.5 bg-gray-200 mx-1.5" />
+                )}
+              </React.Fragment>
+            ))}
+          </View>
+
+          <ThemedText className="text-xs text-gray-400 font-medium">
+            Etapa {currentStep} de {currentMaxSteps}
           </ThemedText>
         </View>
 
         {registerError && (
-          <View style={styles.errorBox}>
-            <ThemedText style={styles.errorTextInternal}>
+          <View className="flex-row items-center bg-red-100 py-2 px-3 mx-4 mb-3 rounded-xl gap-2">
+            <Ionicons name="alert-circle" size={16} color="#DC2626" />
+            <ThemedText className="flex-1 text-red-600 text-xs font-medium">
               {registerError}
             </ThemedText>
           </View>
         )}
 
         <ScrollView
-          style={styles.formScroll}
-          contentContainerStyle={styles.formContent}
+          className="flex-1 px-4 md:px-5"
+          contentContainerStyle={{ paddingBottom: 8 }}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
         >
-          <View
-            style={[styles.stepContainer, currentStep !== 1 && styles.hidden]}
-          >
-            {Step1Content}
-          </View>
-
-          <View
-            style={[styles.stepContainer, currentStep !== 2 && styles.hidden]}
-          >
-            {selectedProfileContent}
-          </View>
+          {stepContents.map((Content, index) => (
+            <View
+              key={index}
+              className={`gap-3 ${currentStep !== index + 1 ? "absolute h-0 opacity-0 overflow-hidden top-0 left-0 right-0 z-[-1]" : ""}`}
+            >
+              {Content}
+            </View>
+          ))}
         </ScrollView>
 
-        <View style={styles.actionsContainer}>
-          {currentStep > 1 && (
-            <Button
-              title="VOLTAR"
-              onPress={handlePreviousStep}
-              variant="outline"
-              size="md"
-              style={{ marginBottom: 10 }}
-            />
-          )}
+        <View className="px-4 py-4 md:px-5 md:pt-4 md:pb-5 border-t border-t-gray-100">
+          <View className="flex-row gap-3 mb-3">
+            {currentStep > 1 && (
+              <Button
+                title="VOLTAR"
+                onPress={handlePreviousStep}
+                variant="outline"
+                size="md"
+                className="flex-1"
+              />
+            )}
 
-          {currentStep === 1 && (
-            <Button
-              title="PRÓXIMO"
-              onPress={handleNextStep}
-              size="md"
-              disabled={isSubmitting}
-            />
-          )}
+            {currentStep < currentMaxSteps && (
+              <Button
+                title="PRÓXIMO"
+                onPress={handleNextStep}
+                size="md"
+                disabled={isSubmitting}
+                className={`flex-1 ${currentStep > 1 ? "" : "w-full"}`}
+              />
+            )}
 
-          {currentStep === 2 && (
-            <Button
-              title={isSubmitting ? "CRIANDO CONTA..." : "FINALIZAR CADASTRO"}
-              onPress={handleFinalSubmit}
-              disabled={isSubmitting}
-              size="md"
-            />
-          )}
+            {currentStep === currentMaxSteps && (
+              <Button
+                title={isSubmitting ? "CRIANDO..." : "FINALIZAR"}
+                onPress={handleFinalSubmit}
+                disabled={isSubmitting}
+                size="md"
+                className="flex-1"
+              />
+            )}
+          </View>
 
-          <View style={styles.footer}>
-            <ThemedText style={[styles.linkText, { color: bgColor }]}>
+          <View className="flex-row justify-center items-center">
+            <ThemedText className="text-xs text-gray-600 font-normal">
               Já tem uma conta?{" "}
             </ThemedText>
             <Link href="/login" asChild>
               <Pressable>
                 <ThemedText
-                  style={[
-                    styles.linkText,
-                    { color: linkColor, textDecorationLine: "underline" },
-                  ]}
+                  style={{ color: linkColor }}
+                  className="text-xs font-semibold underline"
                 >
                   Faça login
                 </ThemedText>
@@ -349,100 +502,3 @@ export default function RegisterScreen() {
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  pageContainer: {
-    flex: 1,
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  card: {
-    height: "70%",
-    width: "100%",
-    maxWidth: 520,
-    borderRadius: 16,
-    paddingHorizontal: 24,
-    justifyContent: "space-between",
-    paddingTop: 50,
-    paddingBottom: 25,
-    gap: 10,
-  },
-  header: {
-    alignItems: "center",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    fontFamily: FontPoppins.MEDIUM,
-  },
-  stepIndicator: {
-    fontSize: 12,
-    color: "#999",
-    marginTop: 5,
-  },
-  formContainer: {
-    gap: 10,
-  },
-  optionsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  linkText: {
-    fontSize: 12,
-    fontFamily: FontPoppins.MEDIUM,
-  },
-  actionsContainer: {
-    gap: 24,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorBox: {
-    backgroundColor: "#FEE2E2",
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#F87171",
-  },
-  errorTextInternal: {
-    color: "#B91C1C",
-    textAlign: "center",
-    fontFamily: FontPoppins.MEDIUM,
-    fontSize: 14,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: FontPoppins.SEMIBOLD,
-    color: "#333",
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  hidden: {
-    position: "absolute",
-    height: 0,
-    opacity: 0,
-    overflow: "hidden",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: -1,
-  },
-  formScroll: {
-    flex: 1,
-    marginVertical: 10,
-  },
-  formContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-  stepContainer: {
-    paddingTop: 10,
-    gap: 10,
-  },
-});

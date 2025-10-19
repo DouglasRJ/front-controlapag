@@ -30,7 +30,7 @@ export function CustomHeader() {
       </Pressable>
 
       <View className="items-center relative">
-        <Logo fontSize={24} />
+        <Logo fontSize={24} hasMargin />
         <ThemedText className="text-sm absolute bottom-[1px] text-foreground">
           {roleText}
         </ThemedText>

@@ -6,6 +6,7 @@ import { isAxiosError } from "axios";
 import { router } from "expo-router";
 import { create } from "zustand";
 import { createJSONStorage, persist, StateStorage } from "zustand/middleware";
+import { showToast } from "./toastStore";
 
 const dummyStorage: StateStorage = {
   getItem: () => null,
@@ -42,11 +43,11 @@ export const useAuthStore = create(
 
           api.defaults.headers.common["Authorization"] =
             `Bearer ${accessToken}`;
-
+          showToast("Login efetuado com sucesso!", "success");
           set({ user, token: accessToken, isAuthenticated: true });
         } catch (error) {
           console.error("Login failed:", error);
-
+          showToast("Falha ao tentar logar!", "error");
           const apiErrorMessage =
             (error as any).response?.data?.message ||
             "Falha no login. Verifique suas credenciais.";

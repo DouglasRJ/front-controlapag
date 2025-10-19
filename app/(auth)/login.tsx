@@ -3,31 +3,37 @@ import { ControlledInput } from "@/components/forms/controlled-input";
 import { Logo } from "@/components/logo";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Button } from "@/components/ui/button";
-import { FontPoppins } from "@/constants/font";
-import { useThemeColor } from "@/hooks/use-theme-color";
-import { LoginData, loginSchema } from "@/lib/validators/auth";
+import { LoginData } from "@/lib/validators/auth";
 import { useAuthStore } from "@/store/authStore";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { z } from "zod";
+
+const loginSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  rememberMe: z.boolean().optional(),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
   const { login } = useAuthStore();
 
   const [loginError, setLoginError] = useState(false);
 
-  const cardBackgroundColor = useThemeColor({}, "card");
-  const bgColor = useThemeColor({}, "background");
-  const linkColor = useThemeColor({}, "tint");
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     control,
     handleSubmit,
-    formState: { isSubmitting },
-  } = useForm<LoginData>({
+    formState: { errors },
+  } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
@@ -44,152 +50,139 @@ export default function LoginScreen() {
   };
 
   return (
-    <ThemedView style={styles.pageContainer}>
-      <View style={[styles.card, { backgroundColor: cardBackgroundColor }]}>
-        <View style={styles.header}>
-          <Logo fontSize={36} />
-          <ThemedText style={styles.subtitle}>
+    <ThemedView className="flex-1 justify-center items-center md:p-4">
+      <LinearGradient
+        colors={["#242120", "#242120", "#242120"]}
+        style={StyleSheet.absoluteFillObject}
+      />
+
+      <View className="hidden md:block absolute top-[-80] right-[-40] w-[200] h-[200] rounded-full bg-orange-500/5" />
+      <View className="hidden md:block absolute bottom-[-100] left-[-80] w-[250] h-[250] rounded-full bg-orange-500/5" />
+      <View className="hidden md:block absolute top-[150] left-[30] w-[100] h-[100] rounded-full bg-orange-500/3" />
+
+      <View
+        className={`
+          w-full bg-card overflow-hidden flex-1 mb-4 
+          md:max-w-xl rounded-3xl md:shadow-2xl md:elevation-10 md:max-h-[80%]
+        `}
+      >
+        <View className="h-3 bg-primary" />
+
+        <View className="items-center pt-6 pb-4 px-4 md:px-5">
+          <View className="mb-4 w-9 h-9 rounded-lg bg-primary items-center justify-center">
+            <MaterialIcons
+              name="attach-money"
+              size={20}
+              className="text-white"
+            />
+          </View>
+          <Logo fontSize={24} />
+          <ThemedText className="my-2 text-sm text-gray-600 text-center leading-relaxed">
             Entre na sua conta para gerenciar seus serviços
           </ThemedText>
         </View>
 
-        <View style={styles.formContainer}>
-          <ControlledInput
-            control={control}
-            name="email"
-            label="Email"
-            placeholder="seu@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          <ControlledInput
-            control={control}
-            name="password"
-            label="Senha"
-            placeholder="********"
-            secureTextEntry
-          />
-
-          {loginError && (
-            <View style={styles.errorBox}>
-              <ThemedText style={styles.errorTextInternal}>
-                Falha no login. Verifique suas credenciais.
-              </ThemedText>
+        <View className="flex-1 px-4 md:px-5 justify-between">
+          <View className="gap-3">
+            <View>
+              <Text className="text-sm font-semibold text-card-foreground mb-1">
+                Email
+              </Text>
+              <View className="relative">
+                <View className="absolute left-3.5 top-3.5 justify-center z-10">
+                  <Ionicons name="mail-outline" size={20} color="#9ca3af" />
+                </View>
+                <ControlledInput
+                  control={control}
+                  name="email"
+                  placeholder="seu@email.com"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  className="pl-11"
+                />
+              </View>
             </View>
-          )}
 
-          <View style={styles.optionsRow}>
-            <ControlledCheckbox
-              control={control}
-              name="rememberMe"
-              label="Lembrar Senha"
-            />
-            <Link href="/forgot-password" asChild>
-              <Pressable>
-                <ThemedText
-                  style={[
-                    styles.linkText,
-                    { color: bgColor, textDecorationLine: "underline" },
-                  ]}
-                >
-                  Esqueci a senha
+            <View>
+              <Text className="text-sm font-semibold text-card-foreground mb-1">
+                Senha
+              </Text>
+              <View className="flex-row relative items-center">
+                <View className="absolute left-3.5 top-3.5 justify-center z-10">
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color="#9ca3af"
+                  />
+                </View>
+                <ControlledInput
+                  control={control}
+                  name="password"
+                  placeholder="••••••••"
+                  secureTextEntry
+                  className="pl-11"
+                />
+              </View>
+            </View>
+            {loginError && (
+              <View className="bg-[#FEE2E2] p-4 rounded-lg border border-[#F87171]">
+                <ThemedText className="text-[#B91C1C] text-center font-medium text-xs">
+                  Falha no login. Verifique suas credenciais.
                 </ThemedText>
-              </Pressable>
-            </Link>
+              </View>
+            )}
+            <View className="flex-row justify-between items-center mt-1 mb-2">
+              <View className="flex-row items-center gap-2">
+                <ControlledCheckbox
+                  label="Lembrar Senha"
+                  control={control}
+                  name="rememberMe"
+                  labelReverse
+                  colorText="text-card-foreground"
+                />
+              </View>
+              <Link href="/forgot-password" asChild>
+                <Pressable>
+                  <Text className="text-xs text-primary font-semibold underline">
+                    Esqueci a senha
+                  </Text>
+                </Pressable>
+              </Link>
+            </View>
+          </View>
+
+          <View className="pb-4">
+            <Pressable
+              onPress={handleSubmit(onSubmit)}
+              disabled={isLoading}
+              className="bg-orange-500 rounded-xl py-3.5 items-center justify-center active:bg-orange-600 shadow-lg shadow-orange-500/30"
+            >
+              <Text className="text-white text-base font-bold tracking-wide">
+                {isLoading ? "ENTRANDO..." : "ENTRAR"}
+              </Text>
+            </Pressable>
+
+            <View className="flex-row justify-center items-center gap-1 mt-3">
+              <Text className="text-xs text-gray-600 font-normal">
+                Ainda não tem uma conta?
+              </Text>
+              <Link href="/register" asChild>
+                <Pressable>
+                  <Text className="text-xs text-orange-500 font-bold">
+                    Cadastre-se
+                  </Text>
+                </Pressable>
+              </Link>
+            </View>
           </View>
         </View>
+      </View>
 
-        <View style={styles.actionsContainer}>
-          <Button
-            title={isSubmitting ? "Entrando..." : "ENTRAR"}
-            onPress={handleSubmit(onSubmit)}
-            disabled={isSubmitting}
-            size="md"
-          />
-
-          <View style={styles.footer}>
-            <ThemedText style={[styles.linkText, { color: bgColor }]}>
-              Ainda não tem uma conta?{" "}
-            </ThemedText>
-            <Link href="/register" asChild>
-              <Pressable>
-                <ThemedText
-                  style={[
-                    styles.linkText,
-                    { color: linkColor, textDecorationLine: "underline" },
-                  ]}
-                >
-                  Cadastre-se
-                </ThemedText>
-              </Pressable>
-            </Link>
-          </View>
-        </View>
+      <View className="mt-2 mb-8">
+        <Text className="text-xs text-gray-400 text-center">
+          Ao continuar, você concorda com nossos Termos de Serviço
+        </Text>
       </View>
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  pageContainer: {
-    flex: 1,
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  card: {
-    height: "70%",
-    width: "100%",
-    maxWidth: 520,
-    borderRadius: 16,
-    paddingHorizontal: 24,
-    justifyContent: "space-between",
-    paddingTop: 50,
-    paddingBottom: 25,
-    gap: 10,
-  },
-  header: {
-    alignItems: "center",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    fontFamily: FontPoppins.MEDIUM,
-  },
-  formContainer: {
-    gap: 10,
-  },
-  optionsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  linkText: {
-    fontSize: 12,
-    fontFamily: FontPoppins.MEDIUM,
-  },
-  actionsContainer: {
-    gap: 24,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorBox: {
-    backgroundColor: "#FEE2E2",
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#F87171",
-  },
-  errorTextInternal: {
-    color: "#B91C1C",
-    textAlign: "center",
-    fontFamily: FontPoppins.MEDIUM,
-    fontSize: 14,
-  },
-});

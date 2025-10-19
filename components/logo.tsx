@@ -11,7 +11,7 @@ type LogoProps = {
 export const Logo = ({
   fontSize = 52,
   showIcon = false,
-  hasMargin = true,
+  hasMargin = false,
 }: LogoProps) => {
   const iconSize = fontSize * 0.5;
   const containerMarginBottom = hasMargin ? fontSize * 0.9 : 0;
@@ -21,7 +21,7 @@ export const Logo = ({
       className="flex-row items-center justify-center relative"
       style={{ marginBottom: containerMarginBottom }}
     >
-      <ThemedText className=" text-primary" style={{ fontSize: fontSize }}>
+      <ThemedText className="text-primary" style={{ fontSize: fontSize }}>
         Controla
       </ThemedText>
       <ThemedText

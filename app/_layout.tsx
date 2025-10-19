@@ -1,4 +1,5 @@
 import { AnimatedSidebar } from "@/components/sidebar";
+import { ToastContainer } from "@/components/toast-container";
 import { useAuthHydration } from "@/hooks/use-auth-hydration";
 import api from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
@@ -99,6 +100,7 @@ export default function RootLayout() {
       <InitialLayout />
       <AnimatedSidebar isOpen={isOpen} onClose={closeSidebar} />
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+      <ToastContainer />
     </View>
   );
 }
