@@ -1,7 +1,9 @@
+import { AnimatedSidebar } from "@/components/sidebar";
 import { useAuthHydration } from "@/hooks/use-auth-hydration";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import api from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
+import { useSidebar } from "@/store/sidebarStore";
+import { useThemeStore } from "@/store/themeStore";
 import { USER_ROLE } from "@/types/user-role";
 import {
   Poppins_100Thin,
@@ -24,21 +26,20 @@ import {
   Poppins_900Black_Italic,
 } from "@expo-google-fonts/poppins";
 import { useFonts } from "@expo-google-fonts/poppins/useFonts";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
 import { Slot, SplashScreen, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
-import "react-native-reanimated";
 import "../global.css";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const colorScheme = useThemeStore((state) => state.colorScheme);
+  const themeHasHydrated = useThemeStore((state) => state._hasHydrated);
+  const rootViewRef = useRef<View>(null);
+  const { isOpen, closeSidebar } = useSidebar();
+
   const [fontsLoaded, fontError] = useFonts({
     Poppins_100Thin,
     Poppins_100Thin_Italic,
@@ -60,14 +61,11 @@ export default function RootLayout() {
     Poppins_900Black_Italic,
   });
 
-  const colorScheme = useColorScheme();
-
   useEffect(() => {
     const initialToken = useAuthStore.getState().token;
     if (initialToken) {
       api.defaults.headers.common["Authorization"] = `Bearer ${initialToken}`;
     }
-
     const unsubscribe = useAuthStore.subscribe((state) => {
       const token = state.token;
       if (token) {
@@ -76,29 +74,32 @@ export default function RootLayout() {
         delete api.defaults.headers.common["Authorization"];
       }
     });
-
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if ((fontsLoaded || fontError) && themeHasHydrated) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, themeHasHydrated]);
 
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
-
-  return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <View className="w-full -mt-20">
-        <InitialLayout />
-        <StatusBar style="auto" />
+  if ((!fontsLoaded && !fontError) || !themeHasHydrated) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" className="text-primary" />
       </View>
-    </ThemeProvider>
+    );
+  }
+  return (
+    <View
+      ref={rootViewRef}
+      className={`flex-1 ${colorScheme === "dark" ? "dark" : ""} transition-colors duration-300 ease-in-out`}
+      style={{ flex: 1 }}
+    >
+      <InitialLayout />
+      <AnimatedSidebar isOpen={isOpen} onClose={closeSidebar} />
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+    </View>
   );
 }
 
@@ -106,13 +107,10 @@ function InitialLayout() {
   const { isAuthenticated, user } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
-
   const isHydrated = useAuthHydration();
 
   useEffect(() => {
-    if (!isHydrated) {
-      return;
-    }
+    if (!isHydrated) return;
 
     const inAuthGroup = segments[0] === "(auth)";
     if (isAuthenticated && user) {
@@ -123,17 +121,15 @@ function InitialLayout() {
             : "/(tabs)/(client)/charges";
         router.replace(homePath);
       }
-    } else if (!isAuthenticated) {
-      if (!inAuthGroup) {
-        router.replace("/(auth)/login");
-      }
+    } else if (!isAuthenticated && !inAuthGroup) {
+      router.replace("/(auth)/login");
     }
   }, [isAuthenticated, segments, user, router, isHydrated]);
 
   if (!isHydrated) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" className="text-primary" />
       </View>
     );
   }

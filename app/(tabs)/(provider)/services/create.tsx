@@ -1,4 +1,3 @@
-import { CustomHeader } from "@/components/custom-header";
 import { ControlledCheckbox } from "@/components/forms/controlled-checkbox";
 import { ControlledInput } from "@/components/forms/controlled-input";
 import { ControlledSelect } from "@/components/forms/controlled-select";
@@ -126,7 +125,6 @@ export default function CreateServiceScreen() {
 
   return (
     <ThemedView style={styles.pageContainer}>
-      <CustomHeader />
       <ScrollView
         style={{ width: "100%", paddingBottom: 80 }}
         contentContainerStyle={{ alignItems: "center" }}

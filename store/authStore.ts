@@ -123,7 +123,7 @@ export const useAuthStore = create(
       logout: () => {
         delete api.defaults.headers.common["Authorization"];
         set({ user: null, token: null, isAuthenticated: false });
-        router.replace("/(auth)/login");
+        router.navigate("/(auth)/login");
       },
 
       setUser: (user) => {

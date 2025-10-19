@@ -1,20 +1,17 @@
-import { ThemedView } from "@/components/themed-view";
-import { FontPoppins } from "@/constants/font";
 import { useAuthHydration } from "@/hooks/use-auth-hydration";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import api from "@/services/api";
 import { Service } from "@/types/service";
 import { formatCurrency } from "@/utils/format-currency";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Text, View } from "react-native";
 import { ThemedText } from "../themed-text";
 import { Button } from "../ui/button";
 import { SearchInput } from "../ui/search-input";
 
 const debounce = (func: (...args: any[]) => void, delay: number) => {
-  let timeoutId: NodeJS.Timeout;
+  let timeoutId: number;
   const debounced = (...args: any[]) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
@@ -26,19 +23,11 @@ const debounce = (func: (...args: any[]) => void, delay: number) => {
 };
 
 export function ServicesCard() {
-  const cardColor = useThemeColor({}, "card");
-  const iconColor = useThemeColor({}, "tint");
-  const textColor = useThemeColor({}, "background");
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOption, setSearchOption] = useState("all");
-
-  const styles = useMemo(
-    () => getStyles({ cardColor, iconColor, textColor }),
-    [cardColor, iconColor, textColor]
-  );
 
   const isHydrated = useAuthHydration();
 
@@ -128,24 +117,26 @@ export function ServicesCard() {
     services.length > 0 || searchQuery || searchOption !== "all";
 
   return (
-    <ThemedView style={[styles.card]}>
-      <View style={styles.header}>
+    <View className="bg-card w-full p-3 justify-between min-h-16 gap-2 rounded-lg">
+      <View className="flex-row items-center justify-between">
         <View>
-          <ThemedText style={[styles.cardTitle]}>Meus Serviços</ThemedText>
-          <ThemedText style={[styles.cardSubTitle]}>
+          <ThemedText className="font-semibold text-card-foreground">
+            Meus Serviços
+          </ThemedText>
+          <ThemedText className="-mb-1.5 text-xs text-card-foreground font-light">
             Gerencie seus serviços
           </ThemedText>
         </View>
         <Button onPress={handleNewService} title="+ Novo Serviço" size="md" />
       </View>
 
-      <View style={styles.searchContainer}>
+      <View className="gap-3 mb-3">
         <SearchInput
           placeholder="Buscar serviços..."
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <View style={styles.optionsSearch}>
+        <View className="flex-row gap-3">
           {optionsSearch.map((option) => (
             <Button
               variant={searchOption === option.value ? "default" : "outline"}
@@ -153,15 +144,13 @@ export function ServicesCard() {
               title={option.label}
               onPress={() => handleSearchOptionChange(option.value)}
               size="xs"
-              customColor={textColor}
             />
           ))}
         </View>
       </View>
 
-      {/* O indicador de loading afeta APENAS o bloco da lista abaixo do input */}
       {loading ? (
-        <View style={{ paddingVertical: 20 }}>
+        <View className="py-3">
           <ActivityIndicator size="large" />
         </View>
       ) : (
@@ -172,73 +161,62 @@ export function ServicesCard() {
                 <ServiceCard key={service.id} service={service} />
               ))}
               {!services.length && (
-                <ThemedText
-                  style={[
-                    styles.cardSubTitle,
-                    { textAlign: "center", marginTop: 20 },
-                  ]}
-                >
+                <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
                   Nenhum serviço encontrado com a busca e filtros aplicados.
                 </ThemedText>
               )}
             </>
           ) : (
-            <ThemedText style={[styles.cardSubTitle]}>
+            <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
               Nenhum serviço cadastrado
             </ThemedText>
           )}
         </View>
       )}
-    </ThemedView>
+    </View>
   );
 }
 
 const ServiceCard = ({ service }: { service: Service }) => {
-  const cardColor = useThemeColor({}, "card");
-  const iconColor = useThemeColor({}, "tint");
-  const textColor = useThemeColor({}, "background");
-  const borderGrayColor = useThemeColor({}, "border");
-
-  const styles = useMemo(
-    () => getStyles({ cardColor, iconColor, textColor, borderGrayColor }),
-    [cardColor, iconColor, textColor, borderGrayColor]
-  );
-
   const handleGoToService = () => {
     router.replace(`/services/${service.id}`);
   };
 
   return (
-    <View style={styles.cardService}>
-      <View style={styles.cardServiceHeader}>
-        <Text style={styles.cardServiceTitle}>{service.name}</Text>
-        <View style={styles.headerIcons}>
+    <View className="w-full min-h-16  rounded-lg mb-2 border-l-4 border-l-primary border-2 border-slate-200 py-2.5 px-2.5 justify-between">
+      <View className="flex-row justify-between">
+        <ThemedText className="text-card-foreground text-xs">
+          {service.name}
+        </ThemedText>
+        <View className="flex-row gap-4">
           <Ionicons
-            style={styles.icon}
+            className="cursor-pointer text-card-foreground"
             name="eye-outline"
             size={18}
-            color={textColor}
             onPress={handleGoToService}
           />
           <Ionicons
-            style={styles.icon}
+            className="cursor-pointer text-card-foreground"
             name="ellipsis-horizontal-outline"
             size={18}
-            color={textColor}
           />
         </View>
       </View>
-      <View style={styles.serviceDataContainer}>
-        <View style={styles.serviceData}>
-          <Text style={styles.value}>
+      <View className="flex-row gap-16">
+        <View className="flex-row items-baseline gap-2.5">
+          <Text className="text-primary font-medium text-xs">
             R$ {formatCurrency(service.defaultPrice || 0)}
           </Text>
-          <Text style={styles.textValue}>Valor por serviço</Text>
+          <Text className="text-card-foreground font-light text-xs">
+            Valor por serviço
+          </Text>
         </View>
 
-        <View style={styles.serviceData}>
-          <Text style={styles.value}>{service?.enrollments?.length || 0}</Text>
-          <Text style={styles.textValue}>
+        <View className="flex-row items-baseline gap-2.5">
+          <Text className="text-primary font-medium text-xs">
+            {service?.enrollments?.length || 0}
+          </Text>
+          <Text className="text-card-foreground font-light text-xs">
             {service?.enrollments?.length === 1
               ? "agendamento"
               : "agendamentos"}
@@ -248,98 +226,3 @@ const ServiceCard = ({ service }: { service: Service }) => {
     </View>
   );
 };
-
-const getStyles = (colors: {
-  cardColor: string;
-  iconColor: string;
-  textColor: string;
-  borderGrayColor?: string;
-}) =>
-  StyleSheet.create({
-    card: {
-      width: "100%",
-      padding: 14,
-      borderRadius: 12,
-      marginBottom: 16,
-      justifyContent: "space-between",
-      minHeight: 60,
-      gap: 8,
-      backgroundColor: colors.cardColor,
-    },
-    cardTitle: {
-      fontSize: 16,
-      fontFamily: FontPoppins.SEMIBOLD,
-      color: colors.textColor,
-    },
-    cardSubTitle: {
-      marginTop: -6,
-      fontSize: 10,
-      color: colors.textColor,
-      fontFamily: FontPoppins.LIGHT,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    valueText: {
-      fontSize: 18,
-      fontFamily: FontPoppins.MEDIUM,
-    },
-    searchContainer: {
-      gap: 10,
-      marginBottom: 10,
-    },
-    optionsSearch: {
-      flexDirection: "row",
-      gap: 10,
-    },
-    cardService: {
-      width: "100%",
-      minHeight: 60,
-      borderRadius: 8,
-      marginBottom: 8,
-      borderLeftWidth: 4,
-      borderLeftColor: colors.iconColor,
-      borderWidth: 1,
-      borderColor: colors.borderGrayColor,
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      justifyContent: "space-between",
-    },
-    cardServiceHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-    },
-    cardServiceTitle: {
-      fontSize: 12,
-      color: colors.textColor,
-      fontFamily: FontPoppins.MEDIUM,
-    },
-    headerIcons: {
-      flexDirection: "row",
-      gap: 16,
-    },
-    serviceDataContainer: {
-      flexDirection: "row",
-      gap: 64,
-    },
-    serviceData: {
-      flexDirection: "row",
-      alignItems: "baseline",
-      gap: 10,
-    },
-    value: {
-      color: colors.iconColor,
-      fontFamily: FontPoppins.MEDIUM,
-      fontSize: 13,
-    },
-    textValue: {
-      color: colors.textColor,
-      fontFamily: FontPoppins.LIGHT,
-      fontSize: 10,
-    },
-    icon: {
-      cursor: "pointer",
-    },
-  });

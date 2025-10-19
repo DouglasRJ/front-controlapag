@@ -1,3 +1,4 @@
+/* global.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,6 +6,7 @@
 @layer base {
   html {
     height: -webkit-fill-available;
+    view-transition-name: root;
   }
 
   body {
@@ -19,4 +21,29 @@
 body {
   background-color: #242120;
   height: 110vh;
+}
+
+@keyframes reveal-forwards {
+  from {
+    clip-path: circle(0% at var(--x) var(--y));
+  }
+  to {
+    clip-path: circle(var(--radius) at var(--y));
+  } /* Expande até o raio máximo */
+}
+
+::view-transition-new(root) {
+  animation: none;
+
+  animation-name: reveal-forwards;
+  animation-duration: 1000ms;
+  animation-timing-function: ease-out;
+  z-index: 1;
+}
+
+html.dark::view-transition-new(root) {
+  z-index: 9999;
+}
+html.dark::view-transition-old(root) {
+  z-index: 0;
 }

@@ -1,10 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { FontPoppins } from "@/constants/font";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 
 type MetricCardProps = {
   icon: React.ComponentProps<typeof Ionicons>["name"];
@@ -19,11 +16,8 @@ export function MetricCard({
   label,
   percentageChange,
 }: MetricCardProps) {
-  const cardColor = useThemeColor({}, "card");
-  const iconColor = useThemeColor({}, "tint");
   const positiveColor = "#10B981";
   const negativeColor = "#EF4444";
-
   const isPositive =
     percentageChange !== undefined &&
     percentageChange !== null &&
@@ -31,65 +25,32 @@ export function MetricCard({
   const changeColor = isPositive ? positiveColor : negativeColor;
 
   return (
-    <ThemedView style={[styles.card, { backgroundColor: cardColor }]}>
-      <View style={styles.header}>
-        <Ionicons name={icon} size={16} color={iconColor} />
+    <View className="flex-1 min-w-36 bg-card p-2 rounded-xl justify-between gap-2">
+      <View className="flex-row justify-between items-center relative">
+        <Ionicons name={icon} size={16} className="text-card-foreground" />
         {percentageChange !== undefined && percentageChange !== null && (
-          <View style={styles.percentageContainer}>
+          <View className="flex-row items-center absolute right-0">
             <Ionicons
               name={isPositive ? "arrow-up" : "arrow-down"}
               color={changeColor}
+              size={14}
             />
-            <ThemedText style={[styles.percentageText, { color: changeColor }]}>
+            <ThemedText
+              className="text-xs font-medium ml-0.5"
+              style={{ color: changeColor }}
+            >
               {Math.abs(percentageChange)}%
             </ThemedText>
           </View>
         )}
       </View>
+
       <View>
-        <ThemedText style={[styles.valueText, { color: iconColor }]}>
-          {value}
-        </ThemedText>
-        <ThemedText style={[styles.labelText, { color: "#000000" }]}>
+        <ThemedText className="font-semibold text-primary">{value}</ThemedText>
+        <ThemedText className="text-xs text-card-foreground">
           {label}
         </ThemedText>
       </View>
-    </ThemedView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    width: "48%",
-    padding: 8,
-    borderRadius: 12,
-    marginBottom: 16,
-    justifyContent: "space-between",
-    minHeight: 60,
-    gap: 8,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  valueText: {
-    fontSize: 18,
-    fontFamily: FontPoppins.MEDIUM,
-  },
-  labelText: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  percentageContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    position: "absolute",
-    right: 0,
-  },
-  percentageText: {
-    fontSize: 12,
-    fontFamily: FontPoppins.MEDIUM,
-    marginLeft: 2,
-  },
-});

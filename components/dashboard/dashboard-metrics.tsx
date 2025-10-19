@@ -3,7 +3,7 @@ import api from "@/services/api";
 import { OperationalMetrics } from "@/types/operational-metrics";
 import { formatCurrency } from "@/utils/format-currency";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { ThemedText } from "../themed-text";
 import { MetricCard } from "./metric-card";
 
@@ -37,7 +37,7 @@ export function DashboardMetrics() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View className="flex-row flex-wrap justify-between">
         <ActivityIndicator size="large" />
       </View>
     );
@@ -45,14 +45,14 @@ export function DashboardMetrics() {
 
   if (error || !metrics) {
     return (
-      <View style={styles.container}>
+      <View className="flex-row flex-wrap justify-between">
         <ThemedText>{error || "Dados indisponíveis."}</ThemedText>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View className="w-full gap-8 flex-row flex-wrap justify-between">
       <MetricCard
         icon="cash-outline"
         value={formatCurrency(metrics.monthlyRevenue)}
@@ -65,7 +65,7 @@ export function DashboardMetrics() {
       />
       <MetricCard
         icon="people-outline"
-        value={`${metrics.clientMetrics.total} ${metrics.clientMetrics.total > 1 ? "clientes" : "cliente"}`}
+        value={`${metrics.clientMetrics.total} ${metrics.clientMetrics.total > 1 ? "Clientes" : "Cliente"}`}
         label={`${metrics.clientMetrics.newThisMonth} ${metrics.clientMetrics.newThisMonth > 1 ? "novos" : "novo"}`}
       />
       <MetricCard
@@ -76,11 +76,3 @@ export function DashboardMetrics() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-});

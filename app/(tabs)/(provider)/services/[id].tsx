@@ -307,7 +307,6 @@ export default function ServiceDetailScreen() {
 
   return (
     <ThemedView style={styles.pageContainer}>
-      <CustomHeader />
       <ScrollView
         style={{ width: "100%", flex: 1 }}
         contentContainerStyle={styles.scrollContent}

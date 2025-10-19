@@ -1,25 +1,14 @@
-import { ThemedView } from "@/components/themed-view";
-import { FontPoppins } from "@/constants/font";
 import { useAuthHydration } from "@/hooks/use-auth-hydration";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import api from "@/services/api";
 import { Enrollments } from "@/types/enrollments";
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { ThemedText } from "../themed-text";
 
 export function EnrollmentsCard() {
-  const cardColor = useThemeColor({}, "card");
-  const iconColor = useThemeColor({}, "tint");
-  const textColor = useThemeColor({}, "background");
   const [enrollments, setEnrollments] = useState<Enrollments[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const styles = useMemo(
-    () => getStyles({ cardColor, iconColor, textColor }),
-    [cardColor, iconColor, textColor]
-  );
 
   const isHydrated = useAuthHydration();
 
@@ -60,13 +49,13 @@ export function EnrollmentsCard() {
   }
 
   return (
-    <ThemedView style={[styles.card]}>
-      <View style={styles.header}>
+    <View className="bg-card w-full p-3 justify-between min-h-16 gap-8 rounded-lg">
+      <View className="flex-row items-center justify-between">
         <View>
-          <ThemedText style={[styles.cardTitle]}>
+          <ThemedText className="font-semibold text-card-foreground">
             Agendamentos de Hoje
           </ThemedText>
-          <ThemedText style={[styles.cardSubTitle]}>
+          <ThemedText className="-mb-1.5 text-xs text-card-foreground font-light">
             Próximos compromissos
           </ThemedText>
         </View>
@@ -77,135 +66,33 @@ export function EnrollmentsCard() {
             <ServiceCard key={enrollment.id} enrollment={enrollment} />
           ))
         ) : (
-          <ThemedText style={[styles.cardSubTitle]}>
+          <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
             Nenhum agendamento para hoje
           </ThemedText>
         )}
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
 const ServiceCard = ({ enrollment }: { enrollment: Enrollments }) => {
-  const cardColor = useThemeColor({}, "card");
-  const iconColor = useThemeColor({}, "tint");
-  const textColor = useThemeColor({}, "background");
-  const borderGrayColor = useThemeColor({}, "border");
-
-  const styles = useMemo(
-    () => getStyles({ cardColor, iconColor, textColor, borderGrayColor }),
-    [cardColor, iconColor, textColor, borderGrayColor]
-  );
-
   return (
-    <View style={styles.cardService}>
-      <View style={styles.cardServiceHeader}>
-        <Text style={styles.cardServiceTitle}>
+    <View className="pr-4 w-full min-h-16  rounded-lg mb-2 border-l-4 border-l-primary border-2 border-slate-200 py-2.5 px-2.5 justify-between">
+      <View className="flex-row justify-between">
+        <ThemedText className="text-card-foreground text-xs">
           {enrollment.startDate.toString()}
-        </Text>
+        </ThemedText>
+        <ThemedText className="text-card-foreground font-light text-xs">
+          {enrollment?.service?.name}
+        </ThemedText>
       </View>
-      <View style={styles.serviceDataContainer}>
-        <View style={styles.serviceData}>
-          <Text style={styles.textValue}>
+      <View className="flex-row gap-16">
+        <View className="flex-row items-baseline gap-2.5">
+          <ThemedText className="text-primary font-medium text-xs">
             {enrollment?.client?.user?.username}
-          </Text>
+          </ThemedText>
         </View>
-      </View>
-      <View style={styles.serviceData}>
-        <Text style={styles.textValue}>{enrollment?.service?.name}</Text>
       </View>
     </View>
   );
 };
-
-const getStyles = (colors: {
-  cardColor: string;
-  iconColor: string;
-  textColor: string;
-  borderGrayColor?: string;
-}) =>
-  StyleSheet.create({
-    card: {
-      width: "100%",
-      padding: 14,
-      borderRadius: 12,
-      marginBottom: 16,
-      justifyContent: "space-between",
-      minHeight: 60,
-      gap: 8,
-      backgroundColor: colors.cardColor,
-    },
-    cardTitle: {
-      fontSize: 16,
-      fontFamily: FontPoppins.SEMIBOLD,
-      color: colors.textColor,
-    },
-    cardSubTitle: {
-      marginTop: -6,
-      fontSize: 10,
-      color: colors.textColor,
-      fontFamily: FontPoppins.LIGHT,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    valueText: {
-      fontSize: 18,
-      fontFamily: FontPoppins.MEDIUM,
-    },
-    searchContainer: {
-      gap: 10,
-      marginBottom: 10,
-    },
-    optionsSearch: {
-      flexDirection: "row",
-      gap: 10,
-    },
-    cardService: {
-      width: "100%",
-      minHeight: 60,
-      borderRadius: 8,
-      marginBottom: 8,
-      borderLeftWidth: 4,
-      borderLeftColor: colors.iconColor,
-      borderWidth: 1,
-      borderColor: colors.borderGrayColor,
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      justifyContent: "space-between",
-    },
-    cardServiceHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-    },
-    cardServiceTitle: {
-      fontSize: 12,
-      color: colors.textColor,
-      fontFamily: FontPoppins.MEDIUM,
-    },
-    headerIcons: {
-      flexDirection: "row",
-      gap: 16,
-    },
-    serviceDataContainer: {
-      flexDirection: "row",
-      gap: 64,
-    },
-    serviceData: {
-      flexDirection: "row",
-      alignItems: "baseline",
-      gap: 10,
-    },
-    value: {
-      color: colors.iconColor,
-      fontFamily: FontPoppins.MEDIUM,
-      fontSize: 13,
-    },
-    textValue: {
-      color: colors.textColor,
-      fontFamily: FontPoppins.LIGHT,
-      fontSize: 10,
-    },
-  });

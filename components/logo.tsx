@@ -1,49 +1,50 @@
-import { FontPoppins } from "@/constants/font";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 import { ThemedText } from "./themed-text";
 
 type LogoProps = {
   fontSize?: number;
   showIcon?: boolean;
+  hasMargin?: boolean;
 };
 
-export const Logo = ({ fontSize = 52, showIcon = false }: LogoProps) => {
-  const primaryColor = useThemeColor({}, "tint");
-
+export const Logo = ({
+  fontSize = 52,
+  showIcon = false,
+  hasMargin = true,
+}: LogoProps) => {
   const iconSize = fontSize * 0.5;
-  const containerMarginBottom = fontSize * 0.9;
+  const containerMarginBottom = hasMargin ? fontSize * 0.9 : 0;
 
   return (
     <View
-      style={[styles.titleContainer, { marginBottom: containerMarginBottom }]}
+      className="flex-row items-center justify-center relative"
+      style={{ marginBottom: containerMarginBottom }}
     >
-      <ThemedText
-        style={[styles.titleText, { fontSize }, { color: primaryColor }]}
-      >
+      <ThemedText className=" text-primary" style={{ fontSize: fontSize }}>
         Controla
       </ThemedText>
       <ThemedText
-        style={[styles.titleTextBold, { fontSize }, { color: primaryColor }]}
+        className=" text-primary font-bold"
+        style={{ fontSize: fontSize }}
       >
         PAG
       </ThemedText>
 
       {showIcon && (
         <>
-          <View style={styles.iconMoney}>
+          <View className="absolute top-[-45px] right-0">
             <MaterialIcons
               name="attach-money"
               size={iconSize}
-              color={primaryColor}
+              className="text-primary"
             />
           </View>
-          <View style={styles.iconPhone}>
+          <View className="absolute bottom-[-45px] left-[5px]">
             <MaterialCommunityIcons
               name="cellphone-message"
               size={iconSize}
-              color={primaryColor}
+              className="text-primary"
             />
           </View>
         </>
@@ -51,30 +52,3 @@ export const Logo = ({ fontSize = 52, showIcon = false }: LogoProps) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  titleText: {
-    letterSpacing: -1,
-    fontFamily: FontPoppins.LIGHT,
-  },
-  titleTextBold: {
-    letterSpacing: -1,
-    fontFamily: FontPoppins.SEMIBOLD,
-  },
-  iconMoney: {
-    position: "absolute",
-    top: -45,
-    right: 0,
-  },
-  iconPhone: {
-    position: "absolute",
-    bottom: -45,
-    left: 5,
-  },
-});
