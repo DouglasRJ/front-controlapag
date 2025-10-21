@@ -124,7 +124,7 @@ function InitialLayout() {
         router.replace(homePath);
       }
     } else if (!isAuthenticated && !inAuthGroup) {
-      router.replace("/(auth)/login");
+      router.replace("/");
     }
   }, [isAuthenticated, segments, user, router, isHydrated]);
 
