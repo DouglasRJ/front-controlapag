@@ -1,70 +1,59 @@
 import { useThemeColor } from "@/hooks/use-theme-color";
-import Checkbox from "expo-checkbox";
+import { Checkbox } from "expo-checkbox";
 import { Control, Controller } from "react-hook-form";
-import { StyleSheet, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { ThemedText } from "../themed-text";
 
 type Props = {
   control: Control<any>;
   name: string;
   label: string;
+  disabled?: boolean;
+  labelReverse?: boolean;
+  colorText?: string;
 };
 
-export function ControlledCheckbox({ control, name, label }: Props) {
-  const checkColor = useThemeColor({}, "tint");
+const ERROR_COLOR = "#EF4444";
+
+export function ControlledCheckbox({
+  control,
+  name,
+  label,
+  disabled = false,
+  labelReverse = false,
+  colorText,
+}: Props) {
   const borderColor = useThemeColor({}, "tint");
-  const errorColor = "#E53E3E";
+
+  const rowDirectionClass = labelReverse ? "flex-row-reverse" : "flex-row";
 
   return (
     <Controller
       control={control}
       name={name}
       render={({ field: { onChange, value }, fieldState: { error } }) => (
-        <View style={styles.container}>
+        <View className="w-full">
           <View
-            style={[
-              styles.checkboxWrapper,
-              {
-                borderColor: error ? errorColor : borderColor,
-              },
-            ]}
+            className={`w-full ${rowDirectionClass} items-center justify-between gap-2`}
           >
             <ThemedText
+              className={colorText || "text-primary"}
               type="labelInput"
-              style={[styles.label, { color: checkColor }]}
             >
               {label}
             </ThemedText>
+
             <Checkbox
               value={!!value}
               onValueChange={onChange}
-              color={value ? checkColor : undefined}
+              disabled={disabled}
+              color={error ? ERROR_COLOR : value ? borderColor : undefined}
             />
           </View>
-          {error && <Text style={styles.errorText}>{error.message}</Text>}
+
+          {error && <Text className="text-red-500 mt-1">{error.message}</Text>}
         </View>
       )}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
-  checkboxWrapper: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  label: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontFamily: "Poppins_400Regular",
-  },
-  errorText: {
-    color: "#E53E3E",
-    marginTop: 4,
-  },
-});

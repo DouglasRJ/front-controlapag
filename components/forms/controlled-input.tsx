@@ -1,20 +1,29 @@
+import { FontPoppins } from "@/constants/font";
 import { useThemeColor } from "@/hooks/use-theme-color"; // 1. Importar o hook
-import React from "react";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
 import { Control, Controller } from "react-hook-form";
 import {
+  Platform,
+  Pressable,
   StyleSheet,
   Text,
   TextInput,
   TextInputProps,
   View,
 } from "react-native";
+import MaskInput, { Masks } from "react-native-mask-input";
 import { ThemedText } from "../themed-text";
+
+type MaskType = "phone" | "cpf" | "cnpj" | undefined;
 
 type ControlledInputProps = {
   control: Control<any>;
   name: string;
   label?: string;
   type?: "text" | "password" | "email" | "number" | "textarea";
+  maskType?: MaskType;
+  disabled?: boolean;
 } & TextInputProps;
 
 export function ControlledInput({
@@ -22,12 +31,38 @@ export function ControlledInput({
   name,
   label,
   type = "text",
+  secureTextEntry,
+  maskType,
+  disabled = false,
   ...textInputProps
 }: ControlledInputProps) {
+  const isSecurityField = !!secureTextEntry;
+  const isMaskedInput = !!maskType;
+
+  const [isPasswordVisible, setPasswordVisible] = useState(isSecurityField);
   const textColor = useThemeColor({}, "tint");
   const borderColor = useThemeColor({}, "tint");
   const errorColor = "#E53E3E";
   const backgroundColor = useThemeColor({}, "text");
+
+  const togglePasswordVisibility = () => {
+    setPasswordVisible(!isPasswordVisible);
+  };
+
+  const mask = (() => {
+    switch (maskType) {
+      case "phone":
+        return Masks.BRL_PHONE;
+      case "cpf":
+        return Masks.CPF;
+      case "cnpj":
+        return Masks.CNPJ;
+      default:
+        return undefined;
+    }
+  })();
+
+  const InputComponent = mask ? MaskInput : TextInput;
 
   return (
     <Controller
@@ -46,31 +81,48 @@ export function ControlledInput({
               {label}
             </ThemedText>
           )}
-          <TextInput
-            style={[
-              styles.input,
-              {
-                borderColor: error ? errorColor : borderColor,
-                backgroundColor: backgroundColor,
-              },
-              type === "textarea" && styles.textarea,
-            ]}
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value}
-            placeholderTextColor={borderColor}
-            secureTextEntry={type === "password"}
-            keyboardType={
-              type === "number"
-                ? "numeric"
-                : type === "email"
-                ? "email-address"
-                : "default"
-            }
-            multiline={type === "textarea"}
-            numberOfLines={type === "textarea" ? 4 : 1}
-            {...textInputProps}
-          />
+          <View className="relative">
+            <InputComponent
+              style={[
+                styles.input,
+                {
+                  borderColor: error ? errorColor : borderColor,
+                  backgroundColor: backgroundColor,
+                },
+                type === "textarea" && styles.textarea,
+                Platform.OS === "web" && { outline: "none" },
+              ]}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+              secureTextEntry={isSecurityField ? isPasswordVisible : false}
+              keyboardType={
+                type === "number"
+                  ? "numeric"
+                  : type === "email"
+                    ? "email-address"
+                    : "default"
+              }
+              multiline={type === "textarea"}
+              numberOfLines={type === "textarea" ? 4 : 1}
+              editable={!disabled}
+              {...(isMaskedInput && { mask })}
+              {...textInputProps}
+            />
+            {secureTextEntry && (
+              <Pressable
+                className="absolute right-4 top-3.5"
+                onPress={togglePasswordVisibility}
+              >
+                <Ionicons
+                  name={isPasswordVisible ? "eye-off" : "eye"}
+                  size={20}
+                  color={borderColor}
+                />
+              </Pressable>
+            )}
+          </View>
+
           {error && <Text style={styles.errorText}>{error.message}</Text>}
         </View>
       )}
@@ -82,17 +134,17 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
     width: "100%",
+    position: "relative",
   },
-  label: {
-    marginBottom: 8,
-  },
+  label: {},
   input: {
     borderLeftWidth: 4,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    fontSize: 12,
-    fontFamily: "Poppins_400Regular",
+    fontSize: 16,
+    color: "#242120",
+    fontFamily: FontPoppins.REGULAR,
   },
   textarea: {
     height: 120,
@@ -100,7 +152,10 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: "#E53E3E",
-    marginTop: 4,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: FontPoppins.REGULAR,
+    fontSize: 12,
+    position: "absolute",
+    bottom: -22,
+    left: 10,
   },
 });

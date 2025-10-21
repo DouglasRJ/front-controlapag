@@ -1,79 +1,39 @@
-import { StyleSheet, Text, type TextProps } from "react-native";
-
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { Text, type TextProps } from "react-native";
+import { twMerge } from "tailwind-merge";
 
 export type ThemedTextProps = TextProps & {
-  lightColor?: string;
-  darkColor?: string;
   type?:
     | "default"
     | "title"
     | "defaultSemiBold"
     | "subtitle"
     | "link"
-    | "titleNoBold"
     | "labelInput";
+  className?: string;
+};
+
+const typeStyles = {
+  default: "text-base leading-6 font-regular",
+  title: "text-4xl leading-8  font-bold",
+  defaultSemiBold: "text-base leading-6  font-semibold",
+  subtitle: "text-xl  font-bold",
+  link: "leading-8 text-base text-blue-600 dark:text-blue-400 font-regular",
+  labelInput: "text-sm  font-medium",
 };
 
 export function ThemedText({
   style,
-  lightColor,
-  darkColor,
   type = "default",
+  className = "",
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, "text");
+  const baseClasses = "text-foreground dark:text-dark-foreground";
 
-  return (
-    <Text
-      style={[
-        { color },
-        type === "default" ? styles.default : undefined,
-        type === "title" ? styles.title : undefined,
-        type === "defaultSemiBold" ? styles.defaultSemiBold : undefined,
-        type === "subtitle" ? styles.subtitle : undefined,
-        type === "link" ? styles.link : undefined,
-        type === "labelInput" ? styles.labelInput : undefined,
-        style,
-      ]}
-      {...rest}
-    />
+  const combinedClassName = twMerge(
+    baseClasses,
+    typeStyles[type] ?? typeStyles.default,
+    className
   );
-}
 
-const styles = StyleSheet.create({
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontFamily: "Poppins_400Regular",
-  },
-  defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontFamily: "Poppins_600SemiBold",
-  },
-  title: {
-    fontSize: 32,
-    lineHeight: 32,
-    fontFamily: "Poppins_700Bold",
-  },
-  subtitle: {
-    fontSize: 20,
-    fontFamily: "Poppins_700Bold",
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: "#0a7ea4",
-    fontFamily: "Poppins_400Regular",
-  },
-  titleNoBold: {
-    fontSize: 32,
-    lineHeight: 32,
-    fontFamily: "Poppins_700Bold",
-  },
-  labelInput: {
-    fontSize: 14,
-    fontFamily: "Poppins_500Medium",
-  },
-});
+  return <Text className={combinedClassName} style={style} {...rest} />;
+}
