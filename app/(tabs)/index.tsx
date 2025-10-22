@@ -184,7 +184,7 @@ export default function HomeScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <View className="border-b border-primary/30 bg-background backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <View className="px-4 lg:px-8">
           <View className="flex flex-row h-16 items-center justify-between">
             <View className="flex flex-row items-center gap-2">
@@ -443,7 +443,7 @@ export default function HomeScreen() {
               <ThemedText className="text-3xl sm:text-4xl font-bold tracking-tight mb-4 text-balance">
                 Simples de começar, fácil de usar
               </ThemedText>
-              <ThemedText className="text-base sm:text-lg text-card-foreground text-balance">
+              <ThemedText className="text-base sm:text-lg text-foreground text-balance">
                 Em poucos minutos você está pronto para gerenciar seu negócio de
                 forma profissional
               </ThemedText>
