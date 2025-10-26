@@ -15,7 +15,7 @@ import {
 import MaskInput, { Masks } from "react-native-mask-input";
 import { ThemedText } from "../themed-text";
 
-type MaskType = "phone" | "cpf" | "cnpj" | undefined;
+type MaskType = "phone" | "cpf" | "cnpj" | "date" | undefined;
 
 type ControlledInputProps = {
   control: Control<any>;
@@ -44,7 +44,6 @@ export function ControlledInput({
   const borderColor = useThemeColor({}, "tint");
   const errorColor = "#E53E3E";
   const backgroundColor = useThemeColor({}, "text");
-
   const togglePasswordVisibility = () => {
     setPasswordVisible(!isPasswordVisible);
   };
@@ -53,10 +52,8 @@ export function ControlledInput({
     switch (maskType) {
       case "phone":
         return Masks.BRL_PHONE;
-      case "cpf":
-        return Masks.CPF;
-      case "cnpj":
-        return Masks.CNPJ;
+      case "date":
+        return Masks.DATE_DDMMYYYY;
       default:
         return undefined;
     }
@@ -94,7 +91,7 @@ export function ControlledInput({
               ]}
               onBlur={onBlur}
               onChangeText={onChange}
-              value={value}
+              value={value === null || value === undefined ? "" : String(value)}
               secureTextEntry={isSecurityField ? isPasswordVisible : false}
               keyboardType={
                 type === "number"

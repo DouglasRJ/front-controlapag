@@ -204,12 +204,23 @@ const ServiceCard = ({ service }: { service: Service }) => {
       </View>
       <View className="flex-row gap-16">
         <View className="flex-row items-baseline gap-2.5">
-          <Text className="text-primary font-medium text-xs">
-            R$ {formatCurrency(service.defaultPrice || 0)}
-          </Text>
-          <Text className="text-card-foreground font-light text-xs">
-            Valor por serviço
-          </Text>
+          {service.defaultPrice ? (
+            <>
+              <Text className="text-primary font-medium text-xs">
+                {formatCurrency(service.defaultPrice || 0)}
+              </Text>
+              <Text className="text-card-foreground font-light text-xs hidden md:flex">
+                Valor por serviço
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text className="text-primary font-medium text-xs">Valor</Text>
+              <Text className="text-card-foreground font-light text-xs hidden md:flex">
+                a combinar com cliente
+              </Text>
+            </>
+          )}
         </View>
 
         <View className="flex-row items-baseline gap-2.5">
@@ -217,9 +228,7 @@ const ServiceCard = ({ service }: { service: Service }) => {
             {service?.enrollments?.length || 0}
           </Text>
           <Text className="text-card-foreground font-light text-xs">
-            {service?.enrollments?.length === 1
-              ? "agendamento"
-              : "agendamentos"}
+            {service?.enrollments?.length === 1 ? "contrato" : "contratos"}
           </Text>
         </View>
       </View>

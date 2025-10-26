@@ -52,7 +52,7 @@ export function DashboardMetrics() {
   }
 
   return (
-    <View className="w-full gap-8 flex-row flex-wrap justify-between">
+    <View className="w-full gap-4 md:gap-8 flex-row flex-wrap justify-between">
       <MetricCard
         icon="cash-outline"
         value={formatCurrency(metrics.monthlyRevenue)}
@@ -61,7 +61,7 @@ export function DashboardMetrics() {
       <MetricCard
         icon="calendar-outline"
         value={`${metrics.activeEnrollments}`}
-        label={`Agendamentos`}
+        label={`Contratos ativos`}
       />
       <MetricCard
         icon="people-outline"

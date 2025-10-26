@@ -31,6 +31,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        light: Colors.light.background,
+        dark: Colors.dark.background,
         background: Colors.light.background,
         foreground: Colors.light.text,
         primary: {
@@ -49,6 +51,8 @@ module.exports = {
         },
       },
       darkColors: {
+        light: Colors.light.background,
+        dark: Colors.dark.background,
         background: Colors.dark.background,
         foreground: Colors.dark.text,
         primary: {

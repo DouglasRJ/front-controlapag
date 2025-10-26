@@ -11,4 +11,5 @@ export interface Service {
   allowedPaymentMethods: PAYMENT_METHOD[];
   createdAt: Date;
   enrollments: Enrollments[];
+  isRecurrent: boolean;
 }

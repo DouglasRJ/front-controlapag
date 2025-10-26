@@ -1,11 +1,7 @@
-import { ControlledCheckbox } from "@/components/forms/controlled-checkbox";
-import { ControlledInput } from "@/components/forms/controlled-input";
-import { ControlledSelect } from "@/components/forms/controlled-select";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { paymentMethodOptions } from "@/constants/service-payment-methods";
 import api from "@/services/api";
-import { Enrollments } from "@/types/enrollments";
+import { useToastStore } from "@/store/toastStore";
 import { Service } from "@/types/service";
 import { formatCurrency } from "@/utils/format-currency";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,7 +22,18 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
-type Tab = "details" | "enrollments";
+import { ServiceDetailsTab } from "@/components/services/service-details-tab";
+import { ServiceEnrollmentsTab } from "@/components/services/service-enrollments-tab";
+import { ServiceOccurrencesTab } from "@/components/services/service-ocorreences-tab";
+import {
+  ServiceTabHeader,
+  TabConfig,
+  TabKey,
+  TabMeasurements,
+} from "@/components/services/service-tab-header";
+import { Button } from "@/components/ui/button";
+import { PAYMENT_METHOD } from "@/types/payment-method";
+import { parseCurrency } from "@/utils/parse-currency";
 
 type ServiceDetailFormData = {
   name: string;
@@ -37,22 +44,15 @@ type ServiceDetailFormData = {
   address?: string;
   hasFixedPrice?: boolean;
   defaultPrice?: string;
-  recurrence?: string;
-};
-
-const recurrenceOptions = [
-  { label: "Mensalmente", value: "monthly" },
-  { label: "Data do serviço", value: "service_date" },
-  { label: "Personalizado", value: "custom" },
-];
-
-type TabMeasurements = {
-  x: number;
-  width: number;
 };
 
 const { width: screenWidth } = Dimensions.get("window");
-const tabIndicatorPadding = 1;
+
+const tabs: TabConfig[] = [
+  { key: "details", title: "Detalhes" },
+  { key: "enrollments", title: "Contratos" },
+  { key: "schedules", title: "Agendamentos" },
+];
 
 export default function ServiceDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -61,49 +61,37 @@ export default function ServiceDetailScreen() {
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("details");
+  const [activeTab, setActiveTab] = useState<TabKey>("details");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { addToast } = useToastStore();
+
   const [tabMeasurements, setTabMeasurements] = useState<
-    Record<Tab, TabMeasurements | null>
-  >({ details: null, enrollments: null });
+    Record<TabKey, TabMeasurements | null>
+  >({ details: null, enrollments: null, schedules: null });
 
   const indicatorTranslateX = useSharedValue(0);
   const indicatorWidth = useSharedValue(0);
   const contentTranslateX = useSharedValue(0);
 
-  const { control, watch, reset } = useForm<ServiceDetailFormData>({
-    defaultValues: {
-      isRecurrent: false,
-      hasFixedLocation: false,
-      hasFixedPrice: false,
-      allowedPaymentMethods: [],
-      name: "",
-      description: "",
-      address: "",
-      defaultPrice: "",
-      recurrence: "",
-    },
-  });
+  const { control, watch, reset, getValues, setValue } =
+    useForm<ServiceDetailFormData>({
+      defaultValues: {
+        isRecurrent: false,
+        hasFixedLocation: false,
+        hasFixedPrice: false,
+        allowedPaymentMethods: [],
+        name: "",
+        description: "",
+        address: "",
+        defaultPrice: "",
+      },
+    });
 
   const isRecurrent = watch("isRecurrent");
   const hasFixedLocation = watch("hasFixedLocation");
   const hasFixedPrice = watch("hasFixedPrice");
-
-  const indicatorAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      width: withSpring(indicatorWidth.value, {
-        damping: 15,
-        stiffness: 120,
-      }),
-      transform: [
-        {
-          translateX: withSpring(indicatorTranslateX.value, {
-            damping: 15,
-            stiffness: 120,
-          }),
-        },
-      ],
-    };
-  });
 
   const contentAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -119,7 +107,7 @@ export default function ServiceDetailScreen() {
   });
 
   const onTabLayout = useCallback(
-    (tabKey: Tab) => (event: LayoutChangeEvent) => {
+    (tabKey: TabKey) => (event: LayoutChangeEvent) => {
       const { x, width } = event.nativeEvent.layout;
       setTabMeasurements((prev) => {
         const newMeasurements = {
@@ -127,73 +115,183 @@ export default function ServiceDetailScreen() {
           [tabKey]: { x, width },
         };
 
-        if (tabKey === "details" && prev.details === null) {
-          indicatorWidth.value = width - tabIndicatorPadding * 2;
-          indicatorTranslateX.value = x + tabIndicatorPadding;
+        if (tabKey === activeTab && prev[activeTab] === null) {
+          const firstTabKey = tabs[0].key;
+          if (newMeasurements[firstTabKey]) {
+            indicatorWidth.value = newMeasurements[firstTabKey]!.width;
+            indicatorTranslateX.value = newMeasurements[firstTabKey]!.x;
+          }
         }
         return newMeasurements;
       });
     },
-    [indicatorTranslateX, indicatorWidth]
+    [indicatorTranslateX, indicatorWidth, activeTab]
   );
 
   const handleTabChange = useCallback(
-    (tabKey: Tab) => {
+    (tabKey: TabKey) => {
+      if (isEditing) return;
       setActiveTab(tabKey);
+
       const measurements = tabMeasurements[tabKey];
       if (measurements) {
-        indicatorWidth.value = measurements.width - tabIndicatorPadding * 2;
-        indicatorTranslateX.value = measurements.x + tabIndicatorPadding;
+        indicatorWidth.value = measurements.width;
+        indicatorTranslateX.value = measurements.x;
       }
 
-      if (tabKey === "details") {
-        contentTranslateX.value = 0;
-      } else {
-        contentTranslateX.value = -screenWidth;
-      }
+      const tabIndex = tabs.findIndex((tab) => tab.key === tabKey);
+      contentTranslateX.value = -screenWidth * tabIndex;
     },
-    [tabMeasurements, indicatorTranslateX, indicatorWidth, contentTranslateX]
+    [
+      tabMeasurements,
+      indicatorTranslateX,
+      indicatorWidth,
+      contentTranslateX,
+      isEditing,
+    ]
   );
 
-  const fetchService = async () => {
+  const resetFormFromService = useCallback(
+    (serviceToReset: Service | null) => {
+      if (!serviceToReset) {
+        reset({
+          isRecurrent: false,
+          hasFixedLocation: false,
+          hasFixedPrice: false,
+          allowedPaymentMethods: [],
+          name: "",
+          description: "",
+          address: "",
+          defaultPrice: "",
+        });
+        return;
+      }
+      const formData: ServiceDetailFormData = {
+        name: serviceToReset.name || "",
+        description: serviceToReset.description || "",
+        isRecurrent: serviceToReset.isRecurrent ?? false,
+        hasFixedLocation: !!serviceToReset.address,
+        address: serviceToReset.address || "",
+        hasFixedPrice:
+          serviceToReset.defaultPrice !== null &&
+          serviceToReset.defaultPrice !== undefined,
+        defaultPrice:
+          serviceToReset.defaultPrice !== null &&
+          serviceToReset.defaultPrice !== undefined
+            ? formatCurrency(serviceToReset.defaultPrice)
+            : "",
+        allowedPaymentMethods: serviceToReset.allowedPaymentMethods || [],
+      };
+      reset(formData);
+    },
+    [reset]
+  );
+
+  const fetchService = useCallback(async () => {
+    if (!serviceId) {
+      setError("ID do serviço não encontrado.");
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get<Service>(`service/${serviceId}`);
-      const service = response.data;
-      setService(service);
-      const formData: ServiceDetailFormData = {
-        name: service.name || "",
-        description: service.description || "",
-        hasFixedLocation: !!service.address,
-        address: service.address || "",
-        hasFixedPrice: !!service.defaultPrice,
-        defaultPrice: service.defaultPrice
-          ? formatCurrency(service.defaultPrice || 0)
-          : "",
-        allowedPaymentMethods: service.allowedPaymentMethods || [],
-      };
-
-      reset(formData);
+      const serviceData = response.data;
+      setService(serviceData);
+      console.log("serviceData", serviceData);
+      resetFormFromService(serviceData);
     } catch (err) {
       setError("Não foi possível carregar os detalhes do serviço.");
-      console.error(err);
+      console.error("Fetch service error:", err);
+      setService(null);
+      resetFormFromService(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [serviceId, resetFormFromService]);
 
   useEffect(() => {
-    if (!serviceId) return;
-
     fetchService();
-  }, [serviceId, reset]);
+  }, [fetchService]);
 
   const handleBack = () => {
+    if (isEditing) return;
     router.replace("/(tabs)/(provider)/services");
   };
 
   const handleEdit = () => {
-    alert("Iniciando edição do serviço.");
+    if (!service) return;
+    addToast(`Editando ${service.name}`, "warning");
+    setIsEditing(true);
+    handleTabChange("details");
+  };
+
+  const handleCancelEdit = () => {
+    if (service) {
+      addToast(`Cancelando edição de ${service.name}`, "warning");
+      resetFormFromService(service);
+    }
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!serviceId) return;
+    setIsSubmitting(true);
+    try {
+      const formData = getValues();
+
+      const priceAsNumber =
+        formData.hasFixedPrice && formData.defaultPrice
+          ? parseCurrency(formData.defaultPrice)
+          : undefined;
+
+      if (formData.hasFixedPrice && isNaN(priceAsNumber ?? NaN)) {
+        addToast("Preço padrão inválido.", "error");
+        setIsSubmitting(false);
+        return;
+      }
+      const updateDto: Partial<Service> = {
+        name: formData.name,
+        description: formData.description,
+        address: formData.hasFixedLocation ? formData.address : undefined,
+        defaultPrice: priceAsNumber,
+        allowedPaymentMethods:
+          formData.allowedPaymentMethods as PAYMENT_METHOD[],
+        isRecurrent: formData.isRecurrent,
+      };
+
+      Object.keys(updateDto).forEach(
+        (key) =>
+          updateDto[key as keyof typeof updateDto] === undefined &&
+          delete updateDto[key as keyof typeof updateDto]
+      );
+
+      const response = await api.patch<Service>(
+        `service/${serviceId}`,
+        updateDto
+      );
+
+      addToast(`${formData.name} editado com sucesso`, "success");
+
+      const updatedService = response.data;
+      setService(updatedService);
+      resetFormFromService(updatedService);
+      setIsEditing(false);
+    } catch (err: any) {
+      console.error(
+        "Failed to update service:",
+        err?.response?.data || err?.message || err
+      );
+      addToast(
+        `Não foi possível salvar: ${
+          err?.response?.data?.message || "Erro desconhecido"
+        }`,
+        "error"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const enrollments = useMemo(
@@ -203,274 +301,167 @@ export default function ServiceDetailScreen() {
 
   if (loading) {
     return (
-      <ThemedView className="flex-1 w-full items-center pt-5">
-        <View className="flex-1 justify-center items-center mt-12">
-          <ActivityIndicator size="large" color="text-tint" />
-          <ThemedText className="text-foreground mt-2">
-            Carregando detalhes do serviço...
-          </ThemedText>
-        </View>
+      <ThemedView className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="text-tint" />
+        <ThemedText className="text-foreground mt-2">
+          Carregando detalhes do serviço...
+        </ThemedText>
       </ThemedView>
     );
   }
 
-  if (error) {
+  if (error && !service) {
     return (
-      <ThemedView className="flex-1 w-full items-center pt-5">
-        <View className="flex-1 justify-center items-center mt-12">
-          <ThemedText className="text-foreground">{error}</ThemedText>
-        </View>
+      <ThemedView className="flex-1 justify-center items-center p-5">
+        <Ionicons
+          name="alert-circle-outline"
+          size={48}
+          className="text-red-500 mb-4"
+        />
+        <ThemedText className="text-foreground text-center mb-4">
+          {error}
+        </ThemedText>
+        <Button
+          title="Tentar Novamente"
+          onPress={() => fetchService()}
+          variant="outline"
+        ></Button>
+        <Button
+          title="Voltar"
+          onPress={handleBack}
+          variant="link"
+          className="mt-4"
+        ></Button>
       </ThemedView>
     );
   }
 
-  const DetailsTab = (
-    <View className="w-full gap-5 px-5">
-      <View className="w-full p-4 rounded-xl justify-between min-h-[60px]  bg-card shadow-sm">
-        <View className="flex-row items-center justify-between">
-          <ThemedText className="text-card-foreground font-semibold mb-2">
-            Informações básicas
-          </ThemedText>
-        </View>
-        <ControlledInput
-          control={control}
-          name="name"
-          label="Nome"
-          placeholder="Nome do Serviço"
-          disabled={true}
-        />
-        <ControlledInput
-          control={control}
-          name="description"
-          label="Descrição"
-          placeholder="Descrição do Serviço"
-          multiline
-          numberOfLines={4}
-          disabled={true}
-        />
-        <ControlledCheckbox
-          control={control}
-          name="isRecurrent"
-          label="É um serviço recorrente?"
-          disabled={true}
-        />
-      </View>
-
-      <View className="w-full p-4 rounded-xl justify-between min-h-[60px] gap-3 bg-card shadow-sm">
-        <View className="flex-row items-center justify-between">
-          <ThemedText className="text-base font-semibold mb-2 text-card-foreground">
-            Localidade
-          </ThemedText>
-        </View>
-        <ControlledCheckbox
-          control={control}
-          name="hasFixedLocation"
-          label="Local fixo?"
-          disabled={true}
-        />
-        {hasFixedLocation ? (
-          <ControlledInput
-            control={control}
-            name="address"
-            label="Endereço do local"
-            placeholder="Nenhum endereço fixo"
-            disabled={true}
-          />
-        ) : (
-          <ThemedText className="text-sm font-medium opacity-70 pl-1 text-card-foreground">
-            Serviço de localidade variável (não fixo).
-          </ThemedText>
-        )}
-      </View>
-
-      <View className="w-full p-4 rounded-xl justify-between min-h-[60px] gap-3 bg-card shadow-sm">
-        <View className="flex-row items-center justify-between">
-          <ThemedText className="text-base font-semibold mb-2 text-card-foreground">
-            Preços e Pagamentos
-          </ThemedText>
-        </View>
-        <ControlledCheckbox
-          control={control}
-          name="hasFixedPrice"
-          label="Preço fixo?"
-          disabled={true}
-        />
-        {hasFixedPrice ? (
-          <ControlledInput
-            control={control}
-            name="defaultPrice"
-            label="Preço (R$)"
-            placeholder="Preço não definido"
-            keyboardType="numeric"
-            disabled={true}
-          />
-        ) : (
-          <ThemedText className="text-sm font-medium opacity-70 pl-1 text-card-foreground">
-            Preço é negociado ou variável.
-          </ThemedText>
-        )}
-
-        <ControlledSelect
-          control={control}
-          name="allowedPaymentMethods"
-          label="Métodos de pagamento permitidos"
-          options={paymentMethodOptions}
-          placeholder="Nenhum método selecionado"
-          isMultiple
-          disabled={true}
-        />
-
-        {isRecurrent && (
-          <ControlledSelect
-            control={control}
-            name="recurrence"
-            label="Recorrência do pagamento"
-            options={recurrenceOptions}
-            disabled={true}
-          />
-        )}
-      </View>
-    </View>
-  );
-
-  const EnrollmentsTab = (
-    <View className="w-full gap-5 px-5">
-      <View className="w-full p-4 rounded-xl justify-center min-h-[150px] gap-3 bg-card shadow-sm">
-        <View className="flex-row items-center justify-between">
-          <ThemedText className="text-base font-semibold mb-2 text-card-foreground">
-            Agendamentos para {service?.name ?? "o serviço"}
-          </ThemedText>
-        </View>
-        {enrollments?.length && service ? (
-          enrollments.map((enrollment) => (
-            <ServiceCard
-              key={enrollment.id}
-              enrollment={enrollment}
-              serviceName={service.name}
-            />
-          ))
-        ) : (
-          <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
-            Nenhum agendamento para esse serviço
-          </ThemedText>
-        )}
-      </View>
-    </View>
-  );
+  if (!service) {
+    return (
+      <ThemedView className="flex-1 justify-center items-center p-5">
+        <ThemedText className="text-foreground text-center mb-4">
+          Serviço não encontrado.
+        </ThemedText>
+        <Button title="Voltar" onPress={handleBack} variant="link"></Button>
+      </ThemedView>
+    );
+  }
 
   return (
-    <View className="flex-1 w-full items-center pt-5 bg-background">
-      <ScrollView
-        className="w-full flex-1"
-        contentContainerStyle={{
-          alignItems: "center",
-          width: "100%",
-          paddingBottom: 80,
-          gap: 20,
-        }}
-        showsHorizontalScrollIndicator={false}
-      >
-        <View className="flex-row justify-between items-center w-full px-5 mt-5">
-          <View className="flex-row items-center gap-4 shrink">
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              className="text-foreground"
-              onPress={handleBack}
-            />
-            <ThemedText className="text-2xl font-semibold text-foreground">
-              {watch("name") || "Detalhes do Serviço"}
-            </ThemedText>
+    <View className="flex-1 w-full md:pt-5 bg-background">
+      <View className="flex-row justify-between items-center w-full px-5 mt-5 mb-2">
+        <View className="flex-row items-center gap-4 flex-1 mr-2">
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            className={`text-foreground ${isEditing ? "opacity-30" : ""}`}
+            onPress={handleBack}
+            disabled={isEditing}
+          />
+          <ThemedText
+            className="md:text-2xl font-semibold text-foreground flex-shrink"
+            numberOfLines={1}
+          >
+            {watch("name") || "Detalhes do Serviço"}
+          </ThemedText>
+        </View>
+
+        {isEditing ? (
+          <View className="flex-row gap-2">
+            <Pressable
+              onPress={handleCancelEdit}
+              disabled={isSubmitting}
+              className="w-10 h-10 p-2 rounded-full bg-muted items-center justify-center"
+            >
+              <Ionicons
+                name="close-outline"
+                size={24}
+                className="text-muted-foreground"
+              />
+            </Pressable>
+            <Pressable
+              onPress={handleSaveEdit}
+              disabled={isSubmitting}
+              className={`w-10 h-10 p-2 rounded-full items-center justify-center ${
+                isSubmitting ? "bg-primary/70" : "bg-primary"
+              }`}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons
+                  name="save"
+                  size={22}
+                  className="text-primary-foreground"
+                />
+              )}
+            </Pressable>
           </View>
+        ) : (
           <Pressable
             onPress={handleEdit}
-            className="relative w-10 h-10 p-2 rounded-full bg-primary"
+            className="w-10 h-10 rounded-full bg-primary items-center justify-center"
           >
             <Ionicons
               name="create-outline"
-              size={24}
-              className="top-1.5 right-1.5 text-foreground absolute"
+              size={22}
+              className="text-primary-foreground"
             />
           </Pressable>
-        </View>
+        )}
+      </View>
+      <ServiceTabHeader
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        isEditing={isEditing}
+        indicatorTranslateX={indicatorTranslateX}
+        indicatorWidth={indicatorWidth}
+        onTabLayout={onTabLayout}
+      />
 
-        <View className="w-full px-5">
-          <View className="relative flex-row rounded-full border border-icon">
-            <Animated.View
-              className="absolute top-0 w-full h-full rounded-full bg-primary"
-              style={[indicatorAnimatedStyle]}
-            />
-
-            {[
-              { key: "details" as Tab, title: "Detalhes" },
-              { key: "enrollments" as Tab, title: "Agendamentos" },
-            ].map(({ key, title }) => {
-              const isActive = activeTab === key;
-              return (
-                <Pressable
-                  key={key}
-                  onPress={() => handleTabChange(key)}
-                  onLayout={onTabLayout(key)}
-                  className="flex-1 items-center justify-center p-2 z-10"
-                >
-                  <ThemedText
-                    className={`text-sm font-semibold transition-colors duration-300 w-28  ${
-                      isActive ? "text-card" : "text-foreground"
-                    }`}
-                  >
-                    {title}
-                  </ThemedText>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={{ width: "100%" }}>
-          <Animated.View
-            style={[
-              {
-                flexDirection: "row",
-                width: screenWidth * 2,
-              },
-              contentAnimatedStyle,
-            ]}
-          >
-            <View style={{ width: screenWidth }}>{DetailsTab}</View>
-            <View style={{ width: screenWidth }}>{EnrollmentsTab}</View>
-          </Animated.View>
-        </View>
-
-        <View className="h-10" />
+      <ScrollView
+        key={activeTab}
+        className="w-full flex-1 mt-5"
+        contentContainerStyle={{ alignItems: "flex-start" }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Animated.View
+          style={[
+            {
+              flexDirection: "row",
+              width: screenWidth * tabs.length,
+            },
+            contentAnimatedStyle,
+          ]}
+        >
+          {tabs.map((tab) => (
+            <View style={{ width: screenWidth }} key={tab.key}>
+              {tab.key === "details" && (
+                <ServiceDetailsTab
+                  control={control}
+                  isEditing={isEditing}
+                  service={service}
+                  hasFixedLocation={hasFixedLocation}
+                  hasFixedPrice={hasFixedPrice}
+                  isRecurrent={isRecurrent}
+                />
+              )}
+              {tab.key === "enrollments" && (
+                <ServiceEnrollmentsTab
+                  enrollments={enrollments}
+                  serviceId={serviceId}
+                />
+              )}
+              {tab.key === "schedules" && (
+                <ServiceOccurrencesTab serviceId={serviceId} />
+              )}
+            </View>
+          ))}
+        </Animated.View>
+        <View className="h-20" />
       </ScrollView>
     </View>
   );
 }
-
-const ServiceCard = ({
-  enrollment,
-  serviceName,
-}: {
-  enrollment: Enrollments;
-  serviceName: string;
-}) => {
-  return (
-    <View className="pr-4 w-full min-h-16  rounded-lg mb-2 border-l-4 border-l-primary border-2 border-slate-200 py-2.5 px-2.5 justify-between">
-      <View className="flex-row justify-between">
-        <ThemedText className="text-card-foreground text-xs">
-          {enrollment.startDate.toString()}
-        </ThemedText>
-        <ThemedText className="text-card-foreground font-light text-xs">
-          {serviceName}
-        </ThemedText>
-      </View>
-      <View className="flex-row gap-16">
-        <View className="flex-row items-baseline gap-2.5">
-          <ThemedText className="text-primary font-medium text-xs">
-            {enrollment?.client?.user?.username}
-          </ThemedText>
-        </View>
-      </View>
-    </View>
-  );
-};

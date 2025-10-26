@@ -22,7 +22,13 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" />
 
-      {isProvider && <Tabs.Screen name="(provider)" />}
+      {isProvider && (
+        <>
+          <Tabs.Screen name="(provider)" />
+          <Tabs.Screen name="(provider)/services" />
+          <Tabs.Screen name="(provider)/enrollments" />
+        </>
+      )}
 
       {isClient && <Tabs.Screen name="(client)" />}
     </Tabs>
