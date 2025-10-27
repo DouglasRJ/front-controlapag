@@ -9,5 +9,5 @@ export interface Client {
   updatedAt: Date;
   paymentCustomerId?: string;
   enrollments: Enrollments[];
-  user?: User;
+  user: User;
 }

@@ -3,6 +3,7 @@ import api from "@/services/api";
 import { Enrollments } from "@/types/enrollments";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import { EnrollmentCard } from "../services/enrollment-card";
 import { ThemedText } from "../themed-text";
 
 export function EnrollmentsCard() {
@@ -53,46 +54,28 @@ export function EnrollmentsCard() {
       <View className="flex-row items-center justify-between">
         <View>
           <ThemedText className="font-semibold text-card-foreground">
-            Agendamentos de Hoje
+            Contratos
           </ThemedText>
           <ThemedText className="-mb-1.5 text-xs text-card-foreground font-light">
-            Próximos compromissos
+            Gerencie seus contratos
           </ThemedText>
         </View>
       </View>
       <View>
         {enrollments.length ? (
           enrollments.map((enrollment) => (
-            <ServiceCard key={enrollment.id} enrollment={enrollment} />
+            <EnrollmentCard
+              key={enrollment.id}
+              enrollment={enrollment}
+              size="small"
+            />
           ))
         ) : (
           <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
-            Nenhum agendamento para hoje
+            Nenhum contrato ativo
           </ThemedText>
         )}
       </View>
     </View>
   );
 }
-
-const ServiceCard = ({ enrollment }: { enrollment: Enrollments }) => {
-  return (
-    <View className="pr-4 w-full min-h-16  rounded-lg mb-2 border-l-4 border-l-primary border-2 border-slate-200 py-2.5 px-2.5 justify-between">
-      <View className="flex-row justify-between">
-        <ThemedText className="text-card-foreground text-xs">
-          {enrollment.startDate.toString()}
-        </ThemedText>
-        <ThemedText className="text-card-foreground font-light text-xs">
-          {enrollment?.service?.name}
-        </ThemedText>
-      </View>
-      <View className="flex-row gap-16">
-        <View className="flex-row items-baseline gap-2.5">
-          <ThemedText className="text-primary font-medium text-xs">
-            {enrollment?.client?.user?.username}
-          </ThemedText>
-        </View>
-      </View>
-    </View>
-  );
-};

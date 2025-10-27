@@ -177,12 +177,6 @@ export default function LoginScreen() {
           </View>
         </View>
       </View>
-
-      <View className="mt-2 mb-8">
-        <Text className="text-xs text-gray-400 text-center">
-          Ao continuar, você concorda com nossos Termos de Serviço
-        </Text>
-      </View>
     </ThemedView>
   );
 }

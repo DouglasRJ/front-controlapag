@@ -2,7 +2,7 @@ import { FontPoppins } from "@/constants/font";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import React, { useState } from "react";
 import { Control, useController } from "react-hook-form";
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 import DropDownPicker from "react-native-dropdown-picker";
 import { ThemedText } from "../themed-text";
 
@@ -43,41 +43,52 @@ export function ControlledSelect({
   const borderColor = useThemeColor({}, "icon");
   const bgColor = useThemeColor({}, "text");
 
+  const currentValue = field.value || (isMultiple ? [] : null);
+
   return (
-    <View style={styles.container}>
-      <ThemedText
-        type="labelInput"
-        style={[styles.label, { color: textColor }]}
-      >
+    <View className="mb-6" style={{ zIndex: open ? 100 : 1 }}>
+      <ThemedText type="labelInput" style={{ color: textColor }}>
         {label}
       </ThemedText>
       <DropDownPicker
         multiple={isMultiple}
         open={open}
-        value={
-          isMultiple
-            ? Array.isArray(field.value)
-              ? field.value
-              : []
-            : field.value
-        }
+        value={currentValue}
         items={items}
         setOpen={setOpen}
-        setValue={(callback) => field.onChange(callback(field.value))}
+        setValue={(valOrFn) => {
+          if (typeof valOrFn === "function") {
+            field.onChange(valOrFn(currentValue));
+          } else {
+            field.onChange(valOrFn);
+          }
+        }}
         setItems={setItems}
+        onClose={() => {
+          field.onBlur();
+        }}
         placeholder={placeholder}
         mode="BADGE"
         renderBadgeItem={(item) => (
-          <ThemedText color="background">{item.label},</ThemedText>
+          <ThemedText className="text-dark">{item.label}</ThemedText>
         )}
         style={{
-          ...styles.picker,
+          borderRightWidth: 0,
+          borderTopWidth: 0,
+          borderBottomWidth: 0,
+          borderLeftWidth: 4,
+          borderRadius: 8,
+          height: 49,
           backgroundColor: bgColor,
           borderLeftColor: textColor,
         }}
-        textStyle={{ ...styles.text, color: textColor }}
+        textStyle={{
+          fontSize: 16,
+          fontFamily: FontPoppins.REGULAR,
+          color: textColor,
+        }}
         dropDownContainerStyle={{
-          ...styles.dropDown,
+          borderWidth: 1,
           backgroundColor: cardColor,
           borderColor: borderColor,
         }}
@@ -89,26 +100,3 @@ export function ControlledSelect({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 24,
-  },
-  label: {},
-  picker: {
-    borderRightWidth: 0,
-    borderTopWidth: 0,
-    borderBottomWidth: 0,
-    borderLeftWidth: 4,
-    borderRadius: 8,
-    backgroundColor: "#fff",
-    height: 49,
-  },
-  text: {
-    fontSize: 16,
-    fontFamily: FontPoppins.REGULAR,
-  },
-  dropDown: {
-    borderWidth: 1,
-  },
-});

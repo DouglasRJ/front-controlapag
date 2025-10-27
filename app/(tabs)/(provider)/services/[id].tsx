@@ -1,32 +1,40 @@
-import { CustomHeader } from "@/components/custom-header";
-import { ControlledCheckbox } from "@/components/forms/controlled-checkbox";
-import { ControlledInput } from "@/components/forms/controlled-input";
-import { ControlledSelect } from "@/components/forms/controlled-select";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Button } from "@/components/ui/button";
-import { FontPoppins } from "@/constants/font";
-import { paymentMethodOptions } from "@/constants/service-payment-methods";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import api from "@/services/api";
+import { useToastStore } from "@/store/toastStore";
 import { Service } from "@/types/service";
 import { formatCurrency } from "@/utils/format-currency";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   ActivityIndicator,
+  Dimensions,
+  LayoutChangeEvent,
   Pressable,
   ScrollView,
-  StyleSheet,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
-// Tipos para as abas de navegação
-type Tab = "details" | "enrollments";
+import { ServiceDetailsTab } from "@/components/services/service-details-tab";
+import { ServiceEnrollmentsTab } from "@/components/services/service-enrollments-tab";
+import { ServiceOccurrencesTab } from "@/components/services/service-ocorreences-tab";
+import {
+  ServiceTabHeader,
+  TabConfig,
+  TabKey,
+  TabMeasurements,
+} from "@/components/services/service-tab-header";
+import { Button } from "@/components/ui/button";
+import { PAYMENT_METHOD } from "@/types/payment-method";
+import { parseCurrency } from "@/utils/parse-currency";
 
-// Reutilizamos o tipo de dados do formulário de criação para garantir a consistência
 type ServiceDetailFormData = {
   name: string;
   allowedPaymentMethods: string[];
@@ -36,430 +44,423 @@ type ServiceDetailFormData = {
   address?: string;
   hasFixedPrice?: boolean;
   defaultPrice?: string;
-  recurrence?: string;
 };
 
-// Opções de recorrência (extraídas do create.tsx)
-const recurrenceOptions = [
-  { label: "Mensalmente", value: "monthly" },
-  { label: "Data do serviço", value: "service_date" },
-  { label: "Personalizado", value: "custom" },
+const { width: screenWidth } = Dimensions.get("window");
+
+const tabs: TabConfig[] = [
+  { key: "details", title: "Detalhes" },
+  { key: "enrollments", title: "Contratos" },
+  { key: "schedules", title: "Agendamentos" },
 ];
 
 export default function ServiceDetailScreen() {
   const { id } = useLocalSearchParams();
   const serviceId = Array.isArray(id) ? id[0] : id;
 
+  const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("details"); // Estado para a aba ativa
+  const [activeTab, setActiveTab] = useState<TabKey>("details");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { control, watch, reset } = useForm<ServiceDetailFormData>({
-    defaultValues: {
-      isRecurrent: false,
-      hasFixedLocation: false,
-      hasFixedPrice: false,
-      allowedPaymentMethods: [],
-      name: "",
-      description: "",
-      address: "",
-      defaultPrice: "",
-      recurrence: "",
-    },
-  });
+  const { addToast } = useToastStore();
 
-  const cardColor = useThemeColor({}, "card");
-  const iconColor = useThemeColor({}, "tint");
-  const borderGrayColor = useThemeColor({}, "border");
-  const textColor = useThemeColor({}, "text");
-  const backgroundColor = useThemeColor({}, "background");
+  const [tabMeasurements, setTabMeasurements] = useState<
+    Record<TabKey, TabMeasurements | null>
+  >({ details: null, enrollments: null, schedules: null });
 
-  const styles = useMemo(
-    () =>
-      getStyles({
-        cardColor,
-        iconColor,
-        borderGrayColor,
-        textColor,
-        backgroundColor,
-      }),
-    [iconColor, borderGrayColor, cardColor, textColor, backgroundColor]
-  );
+  const indicatorTranslateX = useSharedValue(0);
+  const indicatorWidth = useSharedValue(0);
+  const contentTranslateX = useSharedValue(0);
+
+  const { control, watch, reset, getValues, setValue } =
+    useForm<ServiceDetailFormData>({
+      defaultValues: {
+        isRecurrent: false,
+        hasFixedLocation: false,
+        hasFixedPrice: false,
+        allowedPaymentMethods: [],
+        name: "",
+        description: "",
+        address: "",
+        defaultPrice: "",
+      },
+    });
 
   const isRecurrent = watch("isRecurrent");
   const hasFixedLocation = watch("hasFixedLocation");
   const hasFixedPrice = watch("hasFixedPrice");
 
-  // Lógica de Carregamento de Dados e População do Formulário
-  useEffect(() => {
-    if (!serviceId) return;
+  const contentAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        {
+          translateX: withSpring(contentTranslateX.value, {
+            damping: 18,
+            stiffness: 120,
+          }),
+        },
+      ],
+    };
+  });
 
-    const fetchService = async () => {
-      try {
-        setLoading(true);
-        // Ajuste o endpoint se necessário
-        const response = await api.get<Service>(`service/${serviceId}`);
-        const service = response.data;
-
-        // Mapeamento dos dados do serviço para o formato do formulário
-        const formData: ServiceDetailFormData = {
-          name: service.name || "",
-          description: service.description || "",
-          hasFixedLocation: !!service.address,
-          address: service.address || "",
-          hasFixedPrice: !!service.defaultPrice,
-          defaultPrice: service.defaultPrice
-            ? formatCurrency(service.defaultPrice || 0)
-            : "",
-          allowedPaymentMethods: service.allowedPaymentMethods || [],
+  const onTabLayout = useCallback(
+    (tabKey: TabKey) => (event: LayoutChangeEvent) => {
+      const { x, width } = event.nativeEvent.layout;
+      setTabMeasurements((prev) => {
+        const newMeasurements = {
+          ...prev,
+          [tabKey]: { x, width },
         };
 
-        reset(formData);
-      } catch (err) {
-        setError("Não foi possível carregar os detalhes do serviço.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+        if (tabKey === activeTab && prev[activeTab] === null) {
+          const firstTabKey = tabs[0].key;
+          if (newMeasurements[firstTabKey]) {
+            indicatorWidth.value = newMeasurements[firstTabKey]!.width;
+            indicatorTranslateX.value = newMeasurements[firstTabKey]!.x;
+          }
+        }
+        return newMeasurements;
+      });
+    },
+    [indicatorTranslateX, indicatorWidth, activeTab]
+  );
 
+  const handleTabChange = useCallback(
+    (tabKey: TabKey) => {
+      if (isEditing) return;
+      setActiveTab(tabKey);
+
+      const measurements = tabMeasurements[tabKey];
+      if (measurements) {
+        indicatorWidth.value = measurements.width;
+        indicatorTranslateX.value = measurements.x;
+      }
+
+      const tabIndex = tabs.findIndex((tab) => tab.key === tabKey);
+      contentTranslateX.value = -screenWidth * tabIndex;
+    },
+    [
+      tabMeasurements,
+      indicatorTranslateX,
+      indicatorWidth,
+      contentTranslateX,
+      isEditing,
+    ]
+  );
+
+  const resetFormFromService = useCallback(
+    (serviceToReset: Service | null) => {
+      if (!serviceToReset) {
+        reset({
+          isRecurrent: false,
+          hasFixedLocation: false,
+          hasFixedPrice: false,
+          allowedPaymentMethods: [],
+          name: "",
+          description: "",
+          address: "",
+          defaultPrice: "",
+        });
+        return;
+      }
+      const formData: ServiceDetailFormData = {
+        name: serviceToReset.name || "",
+        description: serviceToReset.description || "",
+        isRecurrent: serviceToReset.isRecurrent ?? false,
+        hasFixedLocation: !!serviceToReset.address,
+        address: serviceToReset.address || "",
+        hasFixedPrice:
+          serviceToReset.defaultPrice !== null &&
+          serviceToReset.defaultPrice !== undefined,
+        defaultPrice:
+          serviceToReset.defaultPrice !== null &&
+          serviceToReset.defaultPrice !== undefined
+            ? formatCurrency(serviceToReset.defaultPrice)
+            : "",
+        allowedPaymentMethods: serviceToReset.allowedPaymentMethods || [],
+      };
+      reset(formData);
+    },
+    [reset]
+  );
+
+  const fetchService = useCallback(async () => {
+    if (!serviceId) {
+      setError("ID do serviço não encontrado.");
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get<Service>(`service/${serviceId}`);
+      const serviceData = response.data;
+      setService(serviceData);
+      resetFormFromService(serviceData);
+    } catch (err) {
+      setError("Não foi possível carregar os detalhes do serviço.");
+      console.error("Fetch service error:", err);
+      setService(null);
+      resetFormFromService(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [serviceId, resetFormFromService]);
+
+  useEffect(() => {
     fetchService();
-  }, [serviceId, reset]);
+  }, [fetchService]);
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(tabs)/(provider)/services");
-    }
+    if (isEditing) return;
+    router.replace("/(tabs)/(provider)/services");
   };
 
   const handleEdit = () => {
-    // Ação de Edição (Poderia navegar para uma tela de edição)
-    alert("Iniciando edição do serviço.");
+    if (!service) return;
+    addToast(`Editando ${service.name}`, "warning");
+    setIsEditing(true);
+    handleTabChange("details");
   };
+
+  const handleCancelEdit = () => {
+    if (service) {
+      addToast(`Cancelando edição de ${service.name}`, "warning");
+      resetFormFromService(service);
+    }
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!serviceId) return;
+    setIsSubmitting(true);
+    try {
+      const formData = getValues();
+
+      const priceAsNumber =
+        formData.hasFixedPrice && formData.defaultPrice
+          ? parseCurrency(formData.defaultPrice)
+          : undefined;
+
+      if (formData.hasFixedPrice && isNaN(priceAsNumber ?? NaN)) {
+        addToast("Preço padrão inválido.", "error");
+        setIsSubmitting(false);
+        return;
+      }
+      const updateDto: Partial<Service> = {
+        name: formData.name,
+        description: formData.description,
+        address: formData.hasFixedLocation ? formData.address : undefined,
+        defaultPrice: priceAsNumber,
+        allowedPaymentMethods:
+          formData.allowedPaymentMethods as PAYMENT_METHOD[],
+        isRecurrent: formData.isRecurrent,
+      };
+
+      Object.keys(updateDto).forEach(
+        (key) =>
+          updateDto[key as keyof typeof updateDto] === undefined &&
+          delete updateDto[key as keyof typeof updateDto]
+      );
+
+      const response = await api.patch<Service>(
+        `service/${serviceId}`,
+        updateDto
+      );
+
+      addToast(`${formData.name} editado com sucesso`, "success");
+
+      const updatedService = response.data;
+      setService(updatedService);
+      resetFormFromService(updatedService);
+      setIsEditing(false);
+    } catch (err: any) {
+      console.error(
+        "Failed to update service:",
+        err?.response?.data || err?.message || err
+      );
+      addToast(
+        `Não foi possível salvar: ${
+          err?.response?.data?.message || "Erro desconhecido"
+        }`,
+        "error"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const enrollments = useMemo(
+    () => service?.enrollments,
+    [service?.enrollments]
+  );
 
   if (loading) {
     return (
-      <ThemedView style={styles.pageContainer}>
-        <CustomHeader />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={iconColor} />
-          <ThemedText color="background">
-            Carregando detalhes do serviço...
-          </ThemedText>
-        </View>
+      <ThemedView className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="text-tint" />
+        <ThemedText className="text-foreground mt-2">
+          Carregando detalhes do serviço...
+        </ThemedText>
       </ThemedView>
     );
   }
 
-  if (error) {
+  if (error && !service) {
     return (
-      <ThemedView style={styles.pageContainer}>
-        <CustomHeader />
-        <View style={styles.loadingContainer}>
-          <ThemedText style={{ color: "red" }} color="background">
-            {error}
-          </ThemedText>
-        </View>
+      <ThemedView className="flex-1 justify-center items-center p-5">
+        <Ionicons
+          name="alert-circle-outline"
+          size={48}
+          className="text-red-500 mb-4"
+        />
+        <ThemedText className="text-foreground text-center mb-4">
+          {error}
+        </ThemedText>
+        <Button
+          title="Tentar Novamente"
+          onPress={() => fetchService()}
+          variant="outline"
+        ></Button>
+        <Button
+          title="Voltar"
+          onPress={handleBack}
+          variant="link"
+          className="mt-4"
+        ></Button>
       </ThemedView>
     );
   }
 
-  const DetailsTab = (
-    <View style={styles.cards}>
-      <View style={styles.card}>
-        <View style={styles.header}>
-          <ThemedText style={[styles.cardTitle]} color="tint">
-            Informações básicas
-          </ThemedText>
-        </View>
-        <ControlledInput
-          control={control}
-          name="name"
-          label="Nome"
-          placeholder="Nome do Serviço"
-          disabled={true}
-        />
-        <ControlledInput
-          control={control}
-          name="description"
-          label="Descrição"
-          placeholder="Descrição do Serviço"
-          multiline
-          numberOfLines={4}
-          disabled={true}
-        />
-        <ControlledCheckbox
-          control={control}
-          name="isRecurrent"
-          label="É um serviço recorrente?"
-          disabled={true}
-        />
-      </View>
-
-      {/* CARD 2: Localidade */}
-      <View style={styles.card}>
-        <View style={styles.header}>
-          <ThemedText style={[styles.cardTitle]} color="tint">
-            Localidade
-          </ThemedText>
-        </View>
-        <ControlledCheckbox
-          control={control}
-          name="hasFixedLocation"
-          label="Local fixo?"
-          disabled={true}
-        />
-        {hasFixedLocation ? (
-          <ControlledInput
-            control={control}
-            name="address"
-            label="Endereço do local"
-            placeholder="Nenhum endereço fixo"
-            disabled={true}
-          />
-        ) : (
-          <ThemedText style={styles.infoText} color="background">
-            Serviço de localidade variável (não fixo).
-          </ThemedText>
-        )}
-      </View>
-
-      {/* CARD 3: Preços e Pagamento */}
-      <View style={styles.card}>
-        <View style={styles.header}>
-          <ThemedText style={[styles.cardTitle]} color="tint">
-            Preços e Pagamentos
-          </ThemedText>
-        </View>
-        <ControlledCheckbox
-          control={control}
-          name="hasFixedPrice"
-          label="Preço fixo?"
-          disabled={true}
-        />
-        {hasFixedPrice ? (
-          <ControlledInput
-            control={control}
-            name="defaultPrice"
-            label="Preço (R$)"
-            placeholder="Preço não definido"
-            keyboardType="numeric"
-            disabled={true}
-          />
-        ) : (
-          <ThemedText style={styles.infoText} color="background">
-            Preço é negociado ou variável.
-          </ThemedText>
-        )}
-
-        <ControlledSelect
-          control={control}
-          name="allowedPaymentMethods"
-          label="Métodos de pagamento permitidos"
-          options={paymentMethodOptions}
-          placeholder="Nenhum método selecionado"
-          isMultiple
-          disabled={true}
-        />
-
-        {isRecurrent && (
-          <ControlledSelect
-            control={control}
-            name="recurrence"
-            label="Recorrência do pagamento"
-            options={recurrenceOptions}
-            disabled={true}
-          />
-        )}
-      </View>
-    </View>
-  );
-
-  // Componente da Aba de Agendamentos (Enrollments)
-  const EnrollmentsTab = (
-    <View style={styles.cards}>
-      <ThemedText style={styles.cardTitle} color="background">
-        Agendamentos para {watch("name")}
-      </ThemedText>
-      {/* Você pode substituir este placeholder por uma lista de agendamentos reais */}
-      <View
-        style={[
-          styles.card,
-          {
-            backgroundColor: cardColor,
-            minHeight: 150,
-            justifyContent: "center",
-          },
-        ]}
-      >
-        <ThemedText color="background" style={{ opacity: 0.7 }}>
-          Aqui seria a lista de todos os agendamentos (Enrollments) relacionados
-          a este serviço.
+  if (!service) {
+    return (
+      <ThemedView className="flex-1 justify-center items-center p-5">
+        <ThemedText className="text-foreground text-center mb-4">
+          Serviço não encontrado.
         </ThemedText>
-        <ThemedText color="background" style={{ marginTop: 10 }}>
-          {/* Total de agendamentos: {router.params.enrollments?.length ?? 0} */}
-        </ThemedText>
-      </View>
-    </View>
-  );
+        <Button title="Voltar" onPress={handleBack} variant="link"></Button>
+      </ThemedView>
+    );
+  }
 
   return (
-    <ThemedView style={styles.pageContainer}>
-      <ScrollView
-        style={{ width: "100%", flex: 1 }}
-        contentContainerStyle={styles.scrollContent}
-        showsHorizontalScrollIndicator={false}
-      >
-        {/* HEADER: Ícone de Voltar, Título e Botão de Edição */}
-        <View style={styles.headerRow}>
-          <View style={styles.titleGroup}>
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={textColor}
-              onPress={handleBack}
-            />
-            <ThemedText style={styles.title} color="background">
-              {watch("name") || "Detalhes do Serviço"}
-            </ThemedText>
+    <View className="flex-1 w-full md:pt-5 bg-background">
+      <View className="flex-row justify-between items-center w-full px-5 mt-5 mb-2">
+        <View className="flex-row items-center gap-4 flex-1 mr-2">
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            className={`text-foreground ${isEditing ? "opacity-30" : ""}`}
+            onPress={handleBack}
+            disabled={isEditing}
+          />
+          <ThemedText
+            className="md:text-2xl font-semibold text-foreground flex-shrink"
+            numberOfLines={1}
+          >
+            {watch("name") || "Detalhes do Serviço"}
+          </ThemedText>
+        </View>
+
+        {isEditing ? (
+          <View className="flex-row gap-2">
+            <Pressable
+              onPress={handleCancelEdit}
+              disabled={isSubmitting}
+              className="w-10 h-10 p-2 rounded-full bg-muted items-center justify-center"
+            >
+              <Ionicons
+                name="close-outline"
+                size={24}
+                className="text-muted-foreground"
+              />
+            </Pressable>
+            <Pressable
+              onPress={handleSaveEdit}
+              disabled={isSubmitting}
+              className={`w-10 h-10 p-2 rounded-full items-center justify-center ${
+                isSubmitting ? "bg-primary/70" : "bg-primary"
+              }`}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons
+                  name="save"
+                  size={22}
+                  className="text-primary-foreground"
+                />
+              )}
+            </Pressable>
           </View>
-          <Pressable onPress={handleEdit} style={styles.editButton}>
-            <Ionicons name="create-outline" size={24} color={cardColor} />
+        ) : (
+          <Pressable
+            onPress={handleEdit}
+            className="w-10 h-10 rounded-full bg-primary items-center justify-center"
+          >
+            <Ionicons
+              name="create-outline"
+              size={22}
+              className="text-primary-foreground"
+            />
           </Pressable>
-        </View>
+        )}
+      </View>
+      <ServiceTabHeader
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        isEditing={isEditing}
+        indicatorTranslateX={indicatorTranslateX}
+        indicatorWidth={indicatorWidth}
+        onTabLayout={onTabLayout}
+      />
 
-        {/* TAB NAVIGATION */}
-        <View style={styles.tabBarContainer}>
-          <Button
-            title="Detalhes"
-            onPress={() => setActiveTab("details")}
-            size="md"
-            variant={activeTab === "details" ? "default" : "outline"}
-            customColor={textColor}
-            style={styles.tabButton}
-          />
-          <Button
-            title="Agendamentos"
-            onPress={() => setActiveTab("enrollments")}
-            size="md"
-            variant={activeTab === "enrollments" ? "default" : "outline"}
-            customColor={textColor}
-            style={styles.tabButton}
-          />
-        </View>
-
-        {/* CONTEÚDO DA ABA */}
-        {activeTab === "details" ? DetailsTab : EnrollmentsTab}
-
-        <View style={{ height: 40 }} />
+      <ScrollView
+        key={activeTab}
+        className="w-full flex-1 mt-5"
+        contentContainerStyle={{ alignItems: "flex-start" }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Animated.View
+          style={[
+            {
+              flexDirection: "row",
+              width: screenWidth * tabs.length,
+            },
+            contentAnimatedStyle,
+          ]}
+        >
+          {tabs.map((tab) => (
+            <View style={{ width: screenWidth }} key={tab.key}>
+              {tab.key === "details" && (
+                <ServiceDetailsTab
+                  control={control}
+                  isEditing={isEditing}
+                  service={service}
+                  hasFixedLocation={hasFixedLocation}
+                  hasFixedPrice={hasFixedPrice}
+                  isRecurrent={isRecurrent}
+                />
+              )}
+              {tab.key === "enrollments" && (
+                <ServiceEnrollmentsTab
+                  enrollments={enrollments}
+                  serviceId={serviceId}
+                />
+              )}
+              {tab.key === "schedules" && (
+                <ServiceOccurrencesTab serviceId={serviceId} />
+              )}
+            </View>
+          ))}
+        </Animated.View>
+        <View className="h-20" />
       </ScrollView>
-    </ThemedView>
+    </View>
   );
 }
-
-const getStyles = (colors: {
-  cardColor: string;
-  iconColor: string;
-  borderGrayColor: string;
-  textColor: string;
-  backgroundColor: string;
-}) =>
-  StyleSheet.create({
-    loadingContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      marginTop: 50,
-    },
-    pageContainer: {
-      flex: 1,
-      flexGrow: 1,
-      alignItems: "center",
-      paddingTop: 20,
-      width: "100%",
-    },
-    scrollContent: {
-      alignItems: "center",
-      width: "100%",
-      paddingBottom: 80,
-      gap: 20,
-    },
-
-    // HEADER ROW
-    headerRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      width: "100%",
-      paddingHorizontal: 20,
-      marginTop: 20,
-    },
-    titleGroup: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 16,
-      flexShrink: 1,
-    },
-    title: {
-      fontFamily: FontPoppins.SEMIBOLD,
-      fontSize: 24,
-      // flexShrink: 1, // Permite que o texto encolha
-    },
-    editButton: {
-      padding: 8,
-      borderRadius: 10,
-      backgroundColor: colors.iconColor,
-    },
-
-    // TAB BAR STYLES
-    tabBarContainer: {
-      flexDirection: "row",
-      justifyContent: "space-around",
-      width: "100%",
-      paddingHorizontal: 20,
-      borderBottomWidth: 1,
-      backgroundColor: colors.cardColor,
-      borderBottomColor: colors.borderGrayColor,
-    },
-    tabButton: {
-      flex: 1,
-      marginHorizontal: 4,
-    },
-    cards: {
-      width: "100%",
-      gap: 20,
-      paddingHorizontal: 20,
-    },
-    cardTitle: {
-      fontSize: 16,
-      fontFamily: FontPoppins.SEMIBOLD,
-      marginBottom: 8,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    card: {
-      width: "100%",
-      padding: 16,
-      borderRadius: 12,
-      justifyContent: "space-between",
-      minHeight: 60,
-      gap: 12,
-      backgroundColor: colors.cardColor,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 4,
-    },
-    infoText: {
-      fontSize: 14,
-      fontFamily: FontPoppins.MEDIUM,
-      opacity: 0.7,
-      paddingLeft: 4,
-    },
-  });

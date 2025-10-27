@@ -26,11 +26,12 @@ interface AuthState {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   setUser: (user: User | null) => void;
+  fetchProfile: () => void;
 }
 
 export const useAuthStore = create(
   persist<AuthState>(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -125,6 +126,36 @@ export const useAuthStore = create(
         delete api.defaults.headers.common["Authorization"];
         set({ user: null, token: null, isAuthenticated: false });
         router.navigate("/(auth)/login");
+      },
+
+      fetchProfile: async () => {
+        console.log("fetching profile");
+        const token = get().token;
+        if (!token) {
+          set({ isAuthenticated: false, user: null });
+          return;
+        }
+
+        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        try {
+          const response = await api.get<User>("/user/me");
+
+          set({
+            user: response.data,
+            isAuthenticated: true,
+          });
+          console.log(
+            "fetchProfile: Perfil carregado, status do provider:",
+            response.data.providerProfile?.status
+          );
+        } catch (error) {
+          console.error(
+            "fetchProfile: Falha ao buscar perfil, fazendo logout",
+            error
+          );
+
+          get().logout();
+        }
       },
 
       setUser: (user) => {

@@ -4,16 +4,13 @@ import { ControlledSelect } from "@/components/forms/controlled-select";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
-import { FontPoppins } from "@/constants/font";
 import { paymentMethodOptions } from "@/constants/service-payment-methods";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import api from "@/services/api";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
-import { useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { z } from "zod";
 
 const newServiceSchema = z
@@ -22,7 +19,6 @@ const newServiceSchema = z
     allowedPaymentMethods: z
       .array(z.string())
       .nonempty({ message: "Selecione pelo menos um método de pagamento." }),
-
     description: z.string().optional(),
     isRecurrent: z.boolean().optional(),
     hasFixedLocation: z.boolean().optional(),
@@ -42,7 +38,6 @@ const newServiceSchema = z
         path: ["address"],
       });
     }
-
     if (
       data.hasFixedPrice &&
       (!data.defaultPrice || data.defaultPrice.trim() === "")
@@ -53,7 +48,6 @@ const newServiceSchema = z
         path: ["defaultPrice"],
       });
     }
-
     if (data.isRecurrent && (!data.recurrence || data.recurrence === "")) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -62,6 +56,7 @@ const newServiceSchema = z
       });
     }
   });
+
 type NewServiceFormData = z.infer<typeof newServiceSchema>;
 
 export default function CreateServiceScreen() {
@@ -85,16 +80,6 @@ export default function CreateServiceScreen() {
     },
   });
 
-  const cardColor = useThemeColor({}, "card");
-  const iconColor = useThemeColor({}, "tint");
-  const borderGrayColor = useThemeColor({}, "border");
-  const textColor = useThemeColor({}, "background");
-
-  const styles = useMemo(
-    () => getStyles({ cardColor, iconColor, borderGrayColor, textColor }),
-    [iconColor, borderGrayColor, cardColor, textColor]
-  );
-
   const isRecurrent = watch("isRecurrent");
   const hasFixedLocation = watch("hasFixedLocation");
   const hasFixedPrice = watch("hasFixedPrice");
@@ -102,12 +87,19 @@ export default function CreateServiceScreen() {
   const handleCreateService = async (data: NewServiceFormData) => {
     console.log("Payload a ser enviado para a API:", data);
     try {
+      const priceAsNumber = data.defaultPrice
+        ? parseFloat(
+            data.defaultPrice.replace(/[^0-9,-]/g, "").replace(",", ".")
+          )
+        : undefined;
+
       await api.post("/service", {
         name: data.name,
         description: data.description,
-        address: data.address,
-        defaultPrice: +data.defaultPrice!,
+        address: data.hasFixedLocation ? data.address : undefined,
+        defaultPrice: data.hasFixedPrice ? priceAsNumber : undefined,
         allowedPaymentMethods: data.allowedPaymentMethods,
+        isRecurrent: data.isRecurrent,
       });
       router.replace("/(tabs)/(provider)/services");
     } catch (error) {
@@ -119,34 +111,35 @@ export default function CreateServiceScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/services");
+      router.replace("/(tabs)/(provider)/services");
     }
   };
 
   return (
-    <ThemedView style={styles.pageContainer}>
+    <ThemedView className="flex-1 grow items-center pt-5 w-full bg-background">
       <ScrollView
-        style={{ width: "100%", paddingBottom: 80 }}
-        contentContainerStyle={{ alignItems: "center" }}
+        className="w-full"
+        contentContainerClassName="items-center pb-20"
         showsHorizontalScrollIndicator={false}
       >
-        <View style={styles.container}>
+        <View className="flex-row items-center p-5 w-full gap-2">
           <Ionicons
             name="arrow-back"
-            size={14}
-            color={"#fff"}
+            size={24}
+            className="text-foreground"
             onPress={handleBack}
           />
-          <ThemedText style={styles.title}>Novo Serviço</ThemedText>
+          <ThemedText className="font-semibold text-lg text-foreground self-start">
+            Novo Serviço
+          </ThemedText>
         </View>
-        <View style={styles.cards}>
-          <View style={styles.card}>
-            <View style={styles.header}>
-              <View>
-                <ThemedText style={[styles.cardTitle]}>
-                  Informações básicas
-                </ThemedText>
-              </View>
+
+        <View className="w-11/12 gap-5">
+          <View className="w-full p-4 rounded-xl gap-3 bg-card shadow-sm min-h-[60px]">
+            <View className="flex-row items-center justify-between mb-2">
+              <ThemedText className="text-base font-semibold text-card-foreground">
+                Informações básicas
+              </ThemedText>
             </View>
             <ControlledInput
               control={control}
@@ -169,55 +162,65 @@ export default function CreateServiceScreen() {
             />
           </View>
 
-          <View style={styles.card}>
-            <View style={styles.header}>
-              <View>
-                <ThemedText style={[styles.cardTitle]}>Localidade</ThemedText>
-              </View>
+          <View className="w-full p-4 rounded-xl gap-3 bg-card shadow-sm min-h-[60px]">
+            <View className="flex-row items-center justify-between mb-2">
+              <ThemedText className="text-base font-semibold text-card-foreground">
+                Localidade Padrão
+              </ThemedText>
             </View>
             <ControlledCheckbox
               control={control}
               name="hasFixedLocation"
-              label="Local fixo?"
+              label="Possui local fixo padrão?"
             />
-            {!hasFixedLocation && (
+            {hasFixedLocation && (
               <ControlledInput
                 control={control}
                 name="address"
-                placeholder="Endereço do local"
+                label="Endereço Padrão"
+                placeholder="Endereço onde o serviço ocorre"
               />
+            )}
+            {!hasFixedLocation && (
+              <ThemedText className="text-sm font-medium opacity-70 text-muted-foreground mt-1">
+                Localidade variável ou definida por contrato.
+              </ThemedText>
             )}
           </View>
 
-          <View style={styles.card}>
-            <View style={styles.header}>
-              <View>
-                <ThemedText style={[styles.cardTitle]}>Preços</ThemedText>
-              </View>
+          <View className="w-full p-4 rounded-xl gap-3 bg-card shadow-sm min-h-[60px]">
+            <View className="flex-row items-center justify-between mb-2">
+              <ThemedText className="text-base font-semibold text-card-foreground">
+                Preços e Pagamentos Padrão
+              </ThemedText>
             </View>
             <ControlledCheckbox
               control={control}
               name="hasFixedPrice"
-              label="Preço fixo?"
+              label="Possui preço padrão?"
             />
-            {!hasFixedPrice && (
+            {hasFixedPrice && (
               <ControlledInput
                 control={control}
                 name="defaultPrice"
-                label="Preço (R$)"
+                label="Preço Padrão (R$)"
                 placeholder="500,00"
                 keyboardType="numeric"
               />
             )}
+            {!hasFixedPrice && (
+              <ThemedText className="text-sm font-medium opacity-70 text-muted-foreground mt-1">
+                Preço negociado por contrato.
+              </ThemedText>
+            )}
             <ControlledSelect
               control={control}
               name="allowedPaymentMethods"
-              label="Métodos de pagamento permitidos"
+              label="Métodos de pagamento aceitos"
               options={paymentMethodOptions}
               placeholder="Selecione os métodos"
               isMultiple
             />
-
             {isRecurrent && (
               <ControlledSelect
                 control={control}
@@ -228,6 +231,7 @@ export default function CreateServiceScreen() {
                   { label: "Data do serviço", value: "service_date" },
                   { label: "Personalizado", value: "custom" },
                 ]}
+                placeholder="Selecione a recorrência"
               />
             )}
           </View>
@@ -237,71 +241,10 @@ export default function CreateServiceScreen() {
             onPress={handleSubmit(handleCreateService)}
             disabled={isSubmitting}
             size="lg"
+            className="mt-4 z-[-1]"
           />
         </View>
       </ScrollView>
     </ThemedView>
   );
 }
-
-const getStyles = (colors: {
-  cardColor: string;
-  iconColor: string;
-  borderGrayColor: string;
-  textColor: string;
-}) =>
-  StyleSheet.create({
-    cards: {
-      width: "90%",
-      gap: 20,
-    },
-    cardTitle: {
-      fontSize: 16,
-      fontFamily: FontPoppins.SEMIBOLD,
-      color: colors.textColor,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    pageContainer: {
-      flex: 1,
-      flexGrow: 1,
-      alignItems: "center",
-      paddingTop: 20,
-      width: "100%",
-    },
-    container: {
-      alignItems: "center",
-      padding: 20,
-      width: "100%",
-      gap: 8,
-      flexDirection: "row",
-    },
-    contentWrapper: {
-      padding: 20,
-      backgroundColor: "#333333",
-      borderRadius: 10,
-      alignItems: "center",
-    },
-    title: {
-      fontFamily: FontPoppins.SEMIBOLD,
-      fontSize: 16,
-      alignSelf: "flex-start",
-    },
-    scrollContainer: {
-      width: "100%",
-      flex: 1,
-    },
-    card: {
-      width: "100%",
-      padding: 14,
-      borderRadius: 12,
-      marginBottom: 16,
-      justifyContent: "space-between",
-      minHeight: 60,
-      gap: 8,
-      backgroundColor: colors.cardColor,
-    },
-  });

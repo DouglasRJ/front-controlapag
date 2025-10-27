@@ -5,7 +5,7 @@ import { formatCurrency } from "@/utils/format-currency";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { ThemedText } from "../themed-text";
 import { Button } from "../ui/button";
 import { SearchInput } from "../ui/search-input";
@@ -183,7 +183,10 @@ const ServiceCard = ({ service }: { service: Service }) => {
   };
 
   return (
-    <View className="w-full min-h-16  rounded-lg mb-2 border-l-4 border-l-primary border-2 border-slate-200 py-2.5 px-2.5 justify-between">
+    <Pressable
+      onPress={handleGoToService}
+      className="w-full min-h-16  rounded-lg mb-2 border-l-4 border-l-primary border-2 border-slate-200 py-2.5 px-2.5 justify-between"
+    >
       <View className="flex-row justify-between">
         <ThemedText className="text-card-foreground text-xs">
           {service.name}
@@ -195,21 +198,32 @@ const ServiceCard = ({ service }: { service: Service }) => {
             size={18}
             onPress={handleGoToService}
           />
-          <Ionicons
+          {/* <Ionicons
             className="cursor-pointer text-card-foreground"
             name="ellipsis-horizontal-outline"
             size={18}
-          />
+          /> */}
         </View>
       </View>
       <View className="flex-row gap-16">
         <View className="flex-row items-baseline gap-2.5">
-          <Text className="text-primary font-medium text-xs">
-            R$ {formatCurrency(service.defaultPrice || 0)}
-          </Text>
-          <Text className="text-card-foreground font-light text-xs">
-            Valor por serviço
-          </Text>
+          {service.defaultPrice ? (
+            <>
+              <Text className="text-primary font-medium text-xs">
+                {formatCurrency(service.defaultPrice || 0)}
+              </Text>
+              <Text className="text-card-foreground font-light text-xs hidden md:flex">
+                Valor por serviço
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text className="text-primary font-medium text-xs">Valor</Text>
+              <Text className="text-card-foreground font-light text-xs hidden md:flex">
+                a combinar com cliente
+              </Text>
+            </>
+          )}
         </View>
 
         <View className="flex-row items-baseline gap-2.5">
@@ -217,12 +231,10 @@ const ServiceCard = ({ service }: { service: Service }) => {
             {service?.enrollments?.length || 0}
           </Text>
           <Text className="text-card-foreground font-light text-xs">
-            {service?.enrollments?.length === 1
-              ? "agendamento"
-              : "agendamentos"}
+            {service?.enrollments?.length === 1 ? "contrato" : "contratos"}
           </Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 };
