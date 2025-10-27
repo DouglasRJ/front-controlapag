@@ -1,3 +1,4 @@
+import { ChargeDetailModal } from "@/components/enrollments/charge-detail-modal";
 import { EnrollmentChargeTab } from "@/components/enrollments/enrollment-charge-tab";
 import { EnrollmentDetailsTab } from "@/components/enrollments/enrollment-details-tab";
 import { EnrollmentServiceTab } from "@/components/enrollments/enrollment-service-tab";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import api from "@/services/api";
 import { useToastStore } from "@/store/toastStore";
 import { BILLING_MODEL } from "@/types/billing-model";
+import { Charge } from "@/types/charge";
 import { ENROLLMENT_STATUS } from "@/types/enrollment-status";
 import {
   CreateChargeScheduleDto,
@@ -131,6 +133,18 @@ export default function EnrollmentDetailScreen() {
   const indicatorTranslateX = useSharedValue(0);
   const indicatorWidth = useSharedValue(0);
   const contentTranslateX = useSharedValue(0);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedCharge, setSelectedCharge] = useState<Charge | null>(null);
+
+  const handleChargePress = (charge: Charge) => {
+    setSelectedCharge(charge);
+    setIsModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    setSelectedCharge(null);
+  };
 
   const { control, reset, getValues, handleSubmit, watch, setValue } =
     useForm<EnrollmentFormData>({
@@ -705,6 +719,7 @@ export default function EnrollmentDetailScreen() {
                   control={control}
                   isEditing={isEditing}
                   enrollment={enrollment}
+                  onChargePress={handleChargePress}
                 />
               )}
               {tab.key === "service" && (
@@ -719,6 +734,11 @@ export default function EnrollmentDetailScreen() {
         </Animated.View>
         <View className="h-20" />
       </ScrollView>
+      <ChargeDetailModal
+        visible={isModalVisible}
+        charge={selectedCharge}
+        onClose={handleCloseModal}
+      />
     </View>
   );
 }

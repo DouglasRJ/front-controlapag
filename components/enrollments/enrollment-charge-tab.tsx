@@ -2,16 +2,19 @@ import { ControlledInput } from "@/components/forms/controlled-input";
 import { ControlledSelect } from "@/components/forms/controlled-select";
 import { ThemedText } from "@/components/themed-text";
 import { BILLING_MODEL } from "@/types/billing-model";
+import { Charge } from "@/types/charge";
 import { EnrollmentFormData, Enrollments } from "@/types/enrollments";
 import { RECURRENCE_INTERVAL } from "@/types/recurrence-interval";
 import React from "react";
 import { Control, useWatch } from "react-hook-form";
 import { View } from "react-native";
+import { ChargeList } from "./charge-list";
 
 type EnrollmentChargeTabProps = {
   control: Control<EnrollmentFormData>;
   isEditing: boolean;
   enrollment: Enrollments | null;
+  onChargePress: (charge: Charge) => void;
 };
 
 const billingModelOptions = [
@@ -38,8 +41,10 @@ export function EnrollmentChargeTab({
   control,
   isEditing,
   enrollment,
+  onChargePress,
 }: EnrollmentChargeTabProps) {
   const chargeData = enrollment?.chargeSchedule;
+  const charges = enrollment?.charges;
 
   const billingModel = useWatch({
     control,
@@ -134,20 +139,22 @@ export function EnrollmentChargeTab({
             </View>
           ))}
 
-        <ControlledInput
-          control={control}
-          name="chargeSchedule.chargeDay"
-          label={getChargeDayLabel()}
-          placeholder={
-            recurrenceInterval === RECURRENCE_INTERVAL.WEEKLY
-              ? "Ex: 1 (Segunda)"
-              : "Ex: 15"
-          }
-          keyboardType="numeric"
-          disabled={!isEditing}
-        />
+        {isEditing && (
+          <ControlledInput
+            control={control}
+            name="chargeSchedule.chargeDay"
+            label={getChargeDayLabel()}
+            placeholder={
+              recurrenceInterval === RECURRENCE_INTERVAL.WEEKLY
+                ? "Ex: 1 (Segunda)"
+                : "Ex: 15"
+            }
+            keyboardType="numeric"
+            disabled={!isEditing}
+          />
+        )}
 
-        {billingModel === BILLING_MODEL.ONE_TIME && (
+        {billingModel === BILLING_MODEL.ONE_TIME && isEditing && (
           <ControlledInput
             control={control}
             name="chargeSchedule.dueDate"
@@ -193,6 +200,13 @@ export function EnrollmentChargeTab({
           </View>
         )}
       </View>
+      {!isEditing && enrollment && (
+        <ChargeList
+          charges={charges}
+          onChargePress={onChargePress}
+          initialOpen={true}
+        />
+      )}
     </View>
   );
 }

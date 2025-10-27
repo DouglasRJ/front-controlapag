@@ -199,7 +199,6 @@ export default function ServiceDetailScreen() {
       const response = await api.get<Service>(`service/${serviceId}`);
       const serviceData = response.data;
       setService(serviceData);
-      console.log("serviceData", serviceData);
       resetFormFromService(serviceData);
     } catch (err) {
       setError("Não foi possível carregar os detalhes do serviço.");
