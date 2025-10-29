@@ -1,9 +1,12 @@
+import { StripeOnboardingModal } from "@/app/onboarding/stripe";
 import { useAuthHydration } from "@/hooks/use-auth-hydration";
 import api from "@/services/api";
+import { useAuthStore } from "@/store/authStore";
 import { Service } from "@/types/service";
+import { USER_ROLE } from "@/types/user-role";
 import { formatCurrency } from "@/utils/format-currency";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useSegments } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { ThemedText } from "../themed-text";
@@ -105,6 +108,10 @@ export function ServicesCard() {
     setSearchOption(optionValue);
   };
 
+  const { user } = useAuthStore();
+
+  const segments = useSegments();
+
   if (error) {
     return (
       <View>
@@ -116,64 +123,76 @@ export function ServicesCard() {
   const showServiceList =
     services.length > 0 || searchQuery || searchOption !== "all";
 
+  const isProvider = user?.role === USER_ROLE.PROVIDER;
+  const providerStatus = user?.providerProfile?.status;
+
+  const currentRouteName = segments[segments.length - 1];
+  const isOnStripeConfiguredRoute = currentRouteName === "stripe-configured";
+  const showOnboardingModal =
+    isProvider && providerStatus !== "ACTIVE" && !isOnStripeConfiguredRoute;
+
   return (
-    <View className="bg-card w-full p-3 justify-between min-h-16 gap-2 rounded-lg">
-      <View className="flex-row items-center justify-between">
-        <View>
-          <ThemedText className="font-semibold text-card-foreground">
-            Meus Serviços
-          </ThemedText>
-          <ThemedText className="-mb-1.5 text-xs text-card-foreground font-light">
-            Gerencie seus serviços
-          </ThemedText>
-        </View>
-        <Button onPress={handleNewService} title="+ Novo Serviço" size="md" />
-      </View>
+    <>
+      <StripeOnboardingModal visible={showOnboardingModal} />
 
-      <View className="gap-3 mb-3">
-        <SearchInput
-          placeholder="Buscar serviços..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-        <View className="flex-row gap-3">
-          {optionsSearch.map((option) => (
-            <Button
-              variant={searchOption === option.value ? "default" : "outline"}
-              key={option.value}
-              title={option.label}
-              onPress={() => handleSearchOptionChange(option.value)}
-              size="xs"
-            />
-          ))}
-        </View>
-      </View>
-
-      {loading ? (
-        <View className="py-3">
-          <ActivityIndicator size="large" />
-        </View>
-      ) : (
-        <View>
-          {showServiceList ? (
-            <>
-              {services.map((service) => (
-                <ServiceCard key={service.id} service={service} />
-              ))}
-              {!services.length && (
-                <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
-                  Nenhum serviço encontrado com a busca e filtros aplicados.
-                </ThemedText>
-              )}
-            </>
-          ) : (
-            <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
-              Nenhum serviço cadastrado
+      <View className="bg-card w-full p-3 justify-between min-h-16 gap-2 rounded-lg">
+        <View className="flex-row items-center justify-between">
+          <View>
+            <ThemedText className="font-semibold text-card-foreground">
+              Meus Serviços
             </ThemedText>
-          )}
+            <ThemedText className="-mb-1.5 text-xs text-card-foreground font-light">
+              Gerencie seus serviços
+            </ThemedText>
+          </View>
+          <Button onPress={handleNewService} title="+ Novo Serviço" size="md" />
         </View>
-      )}
-    </View>
+
+        <View className="gap-3 mb-3">
+          <SearchInput
+            placeholder="Buscar serviços..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          <View className="flex-row gap-3">
+            {optionsSearch.map((option) => (
+              <Button
+                variant={searchOption === option.value ? "default" : "outline"}
+                key={option.value}
+                title={option.label}
+                onPress={() => handleSearchOptionChange(option.value)}
+                size="xs"
+              />
+            ))}
+          </View>
+        </View>
+
+        {loading ? (
+          <View className="py-3">
+            <ActivityIndicator size="large" />
+          </View>
+        ) : (
+          <View>
+            {showServiceList ? (
+              <>
+                {services.map((service) => (
+                  <ServiceCard key={service.id} service={service} />
+                ))}
+                {!services.length && (
+                  <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
+                    Nenhum serviço encontrado com a busca e filtros aplicados.
+                  </ThemedText>
+                )}
+              </>
+            ) : (
+              <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
+                Nenhum serviço cadastrado
+              </ThemedText>
+            )}
+          </View>
+        )}
+      </View>
+    </>
   );
 }
 

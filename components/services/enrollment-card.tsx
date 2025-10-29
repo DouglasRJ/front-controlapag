@@ -144,8 +144,8 @@ const getPaymentStatus = (enrollment: Enrollments): PaymentStatus => {
 
   return {
     text: "Pago",
-    bg: "bg-green-100 dark:bg-green-900",
-    textStyle: "text-green-700 dark:text-green-300",
+    bg: "bg-primary",
+    textStyle: "text-white",
   };
 };
 

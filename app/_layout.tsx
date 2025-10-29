@@ -120,7 +120,7 @@ function InitialLayout() {
         const homePath =
           user.role === USER_ROLE.PROVIDER
             ? "/(tabs)/(provider)/services"
-            : "/(tabs)/(client)/charges";
+            : "/(tabs)/(client)/enrollments";
         router.replace(homePath);
       }
     } else if (!isAuthenticated && !inAuthGroup) {

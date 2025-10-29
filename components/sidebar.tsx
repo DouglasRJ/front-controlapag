@@ -58,7 +58,7 @@ export function AnimatedSidebar({ isOpen, onClose }: AnimatedSidebarProps) {
     {
       label: "Início",
       icon: "home-outline",
-      href: user?.role === USER_ROLE.PROVIDER ? "/services" : "/charges",
+      href: user?.role === USER_ROLE.PROVIDER ? "/services" : "/enrollments",
     },
     {
       label: "Perfil",
