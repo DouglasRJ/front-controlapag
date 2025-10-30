@@ -1,4 +1,5 @@
 import { LoginData, RegisterData } from "@/lib/validators/auth";
+import { ClientOnboardingData } from "@/lib/validators/client-onboarding";
 import api from "@/services/api";
 import { User } from "@/types/user";
 import { USER_ROLE } from "@/types/user-role";
@@ -27,6 +28,7 @@ interface AuthState {
   logout: () => void;
   setUser: (user: User | null) => void;
   fetchProfile: () => void;
+  setInitialPassword: (data: ClientOnboardingData) => Promise<void>;
 }
 
 export const useAuthStore = create(
@@ -160,6 +162,36 @@ export const useAuthStore = create(
 
       setUser: (user) => {
         set({ user });
+      },
+
+      setInitialPassword: async (data) => {
+        try {
+          await api.post("/auth/set-initial-password", {
+            token: data.token,
+            username: data.username,
+            newPassword: data.newPassword,
+            phone: data.phone,
+            address: data.address,
+          });
+
+          showToast("Cadastro concluído com sucesso!", "success");
+          router.push("/login");
+        } catch (error) {
+          console.error("Set initial password failed:", error);
+
+          let displayMessage = "Falha ao configurar senha inicial. Tente novamente.";
+
+          if (isAxiosError(error) && error.response) {
+            const apiErrorMessage = error.response.data.message;
+            if (apiErrorMessage && typeof apiErrorMessage === "string") {
+              displayMessage = apiErrorMessage;
+            }
+          } else if (error instanceof Error) {
+            displayMessage = error.message;
+          }
+
+          throw new Error(displayMessage);
+        }
       },
     }),
     {
