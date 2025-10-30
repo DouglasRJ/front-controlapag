@@ -61,6 +61,8 @@ export function EnrollmentDetailsTab({
           fetchEndpoint="client"
           initialSelectedName={enrollment?.client?.user?.username}
           disabled={!isEditing}
+          allowCreation={true}
+          createEndpoint="client/register-by-provider"
           valueAccessor={(item) => item.id}
           displayAccessor={(item) => item.user.username}
           renderListItem={(item) => (

@@ -61,12 +61,14 @@ export const useAuthStore = create(
 
       register: async (data) => {
         try {
+          let response;
+
           switch (data.role) {
             case USER_ROLE.PROVIDER:
               if (!data.providerProfile) {
                 throw new Error("Provider profile is necessary");
               }
-              await api.post("/auth/register/provider", {
+              response = await api.post("/auth/register/provider", {
                 email: data.email,
                 username: data.username,
                 password: data.password,
@@ -76,7 +78,6 @@ export const useAuthStore = create(
                 address: data.providerProfile.address,
                 businessPhone: data.providerProfile.businessPhone,
               });
-              router.push("/login");
               break;
 
             case USER_ROLE.CLIENT:
@@ -84,7 +85,7 @@ export const useAuthStore = create(
                 throw new Error("Client profile is necessary");
               }
 
-              await api.post("/auth/register/client", {
+              response = await api.post("/auth/register/client", {
                 email: data.email,
                 username: data.username,
                 password: data.password,
@@ -92,10 +93,23 @@ export const useAuthStore = create(
                 address: data.clientProfile.address,
                 phone: data.clientProfile.phone,
               });
-              router.push("/login");
               break;
             default:
               throw new Error("Invalid Role");
+          }
+
+          if (response?.data?.accessToken) {
+            const { user, accessToken } = response.data;
+            api.defaults.headers.common["Authorization"] =
+              `Bearer ${accessToken}`;
+            showToast("Cadastro realizado com sucesso!", "success");
+            set({ user, token: accessToken, isAuthenticated: true });
+          } else {
+            showToast(
+              "Cadastro realizado com sucesso! Faça login para continuar.",
+              "success"
+            );
+            router.push("/login");
           }
         } catch (error) {
           console.error("Registration failed:", error);
@@ -166,7 +180,7 @@ export const useAuthStore = create(
 
       setInitialPassword: async (data) => {
         try {
-          await api.post("/auth/set-initial-password", {
+          const response = await api.post("/auth/set-initial-password", {
             token: data.token,
             username: data.username,
             newPassword: data.newPassword,
@@ -174,12 +188,24 @@ export const useAuthStore = create(
             address: data.address,
           });
 
-          showToast("Cadastro concluído com sucesso!", "success");
-          router.push("/login");
+          if (response?.data?.accessToken) {
+            const { user, accessToken } = response.data;
+            api.defaults.headers.common["Authorization"] =
+              `Bearer ${accessToken}`;
+            showToast("Cadastro concluído com sucesso!", "success");
+            set({ user, token: accessToken, isAuthenticated: true });
+          } else {
+            showToast(
+              "Cadastro concluído com sucesso! Faça login para continuar.",
+              "success"
+            );
+            router.push("/login");
+          }
         } catch (error) {
           console.error("Set initial password failed:", error);
 
-          let displayMessage = "Falha ao configurar senha inicial. Tente novamente.";
+          let displayMessage =
+            "Falha ao configurar senha inicial. Tente novamente.";
 
           if (isAxiosError(error) && error.response) {
             const apiErrorMessage = error.response.data.message;
