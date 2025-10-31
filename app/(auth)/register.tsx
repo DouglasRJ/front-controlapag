@@ -11,10 +11,17 @@ import { USER_ROLE } from "@/types/user-role";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 
 const userRoleOptions = [
   { label: "Prestador de Serviço", value: USER_ROLE.PROVIDER },
@@ -33,12 +40,21 @@ const MAX_PROVIDER_STEPS = 5;
 const MAX_CLIENT_STEPS = 4;
 
 export default function RegisterScreen() {
-  const { register } = useAuthStore();
+  const { register, user } = useAuthStore();
 
   const linkColor = useThemeColor({}, "tint");
 
   const [currentStep, setCurrentStep] = useState(1);
   const [registerError, setRegisterError] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+    if (user?.role === USER_ROLE.CLIENT) {
+      router.replace("/(tabs)/(client)/enrollments");
+    } else if (user?.role === USER_ROLE.PROVIDER) {
+      router.replace("/(tabs)/(provider)/services");
+    }
+  }, [user]);
 
   const {
     control,
@@ -66,9 +82,6 @@ export default function RegisterScreen() {
   const role = watch("role");
   const password = watch("password");
   const confirmPassword = watch("confirmPassword");
-
-  const maxSteps =
-    role === USER_ROLE.PROVIDER ? MAX_PROVIDER_STEPS : MAX_CLIENT_STEPS;
 
   useEffect(() => {
     if (role === USER_ROLE.PROVIDER) {
@@ -196,13 +209,7 @@ export default function RegisterScreen() {
 
   const Step1Content = (
     <>
-      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
-        <Ionicons
-          name="person-circle-outline"
-          size={20}
-          color="#FF6B35"
-          className="mr-2"
-        />{" "}
+      <ThemedText className="text-base font-bold text-gray-800 mb-3">
         Identificação Básica
       </ThemedText>
       <ControlledInput
@@ -226,13 +233,7 @@ export default function RegisterScreen() {
 
   const Step2Content = (
     <>
-      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
-        <Ionicons
-          name="lock-closed-outline"
-          size={20}
-          color="#FF6B35"
-          className="mr-2"
-        />{" "}
+      <ThemedText className="text-base font-bold text-gray-800 mb-3">
         Segurança da Conta
       </ThemedText>
       <ControlledInput
@@ -256,17 +257,8 @@ export default function RegisterScreen() {
 
   const Step3Content = (
     <>
-      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
-        <Ionicons
-          name="briefcase-outline"
-          size={20}
-          color="#FF6B35"
-          className="mr-2"
-        />{" "}
+      <ThemedText className="text-base font-bold text-gray-800 mb-3">
         Tipo de Conta
-      </ThemedText>
-      <ThemedText className="text-base font-semibold text-gray-800 mt-2 mb-1">
-        Qual seu objetivo?
       </ThemedText>
       <ControlledSelect
         control={control}
@@ -279,13 +271,7 @@ export default function RegisterScreen() {
 
   const Step4ProviderContent = (
     <>
-      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
-        <Ionicons
-          name="business-outline"
-          size={20}
-          color="#FF6B35"
-          className="mr-2"
-        />{" "}
+      <ThemedText className="text-base font-bold text-gray-800 mb-3">
         Detalhes do Prestador
       </ThemedText>
       <ControlledInput
@@ -315,13 +301,7 @@ export default function RegisterScreen() {
 
   const Step4ClientContent = (
     <>
-      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
-        <Ionicons
-          name="person-circle-outline"
-          size={20}
-          color="#FF6B35"
-          className="mr-2"
-        />{" "}
+      <ThemedText className="text-base font-bold text-gray-800 mb-3">
         Detalhes do Cliente
       </ThemedText>
       <ControlledInput
@@ -343,13 +323,7 @@ export default function RegisterScreen() {
 
   const Step5Content = (
     <>
-      <ThemedText className="text-lg font-bold text-gray-800 mb-2 mt-1 flex-row items-center">
-        <Ionicons
-          name="document-text-outline"
-          size={20}
-          color="#FF6B35"
-          className="mr-2"
-        />{" "}
+      <ThemedText className="text-base font-bold text-gray-800 mb-3">
         Sobre Você
       </ThemedText>
       <ControlledInput
@@ -375,130 +349,194 @@ export default function RegisterScreen() {
   ].filter((content) => content !== null);
 
   return (
-    <ThemedView className="flex-1 justify-center items-center md:p-4">
+    <ThemedView className="flex-1">
       <LinearGradient
         colors={["#242120", "#2d2d2d", "#242120"]}
         style={StyleSheet.absoluteFillObject}
       />
 
-      <View className="hidden md:block absolute w-[250px] h-[250px] rounded-full bg-orange-500/5 top-[-80px] right-[-60px]" />
-      <View className="hidden md:block absolute w-[180px] h-[180px] rounded-full bg-orange-500/5 bottom-[-40px] left-[-50px]" />
-      <View className="hidden md:block absolute w-[120px] h-[120px] rounded-full bg-orange-500/5 top-[40%] left-[-30px]" />
-
-      <View
-        className={`
-          w-full bg-card overflow-hidden flex-1 mb-12 
-          md:max-w-xl rounded-3xl md:shadow-2xl md:elevation-10 md:max-h-[80%]
-        `}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
       >
-        <View className="h-3 bg-primary" />
-
-        <View className="items-center py-4 px-4 md:px-5 md:pt-6 md:pb-4">
-          <View className="mb-4 w-9 h-9 rounded-lg bg-primary items-center justify-center">
-            <MaterialIcons
-              name="attach-money"
-              size={20}
-              className="text-white"
-            />
-          </View>
-          <Logo fontSize={24} />
-          <ThemedText className="my-3 text-sm text-gray-600 text-center leading-relaxed">
-            Crie uma conta para gerenciar seus serviços
-          </ThemedText>
-
-          <View className="flex-row items-center mt-3 mb-1">
-            {Array.from({ length: currentMaxSteps }).map((_, index) => (
-              <React.Fragment key={index}>
-                <View
-                  className={`w-2.5 h-2.5 rounded-full ${currentStep >= index + 1 ? "bg-primary" : "bg-gray-200"}`}
-                />
-                {index < currentMaxSteps - 1 && (
-                  <View className="w-4 h-0.5 bg-gray-200 mx-1.5" />
-                )}
-              </React.Fragment>
-            ))}
-          </View>
-
-          <ThemedText className="text-xs text-gray-400 font-medium">
-            Etapa {currentStep} de {currentMaxSteps}
-          </ThemedText>
-        </View>
-
-        {registerError && (
-          <View className="flex-row items-center bg-red-100 py-2 px-3 mx-4 mb-3 rounded-xl gap-2">
-            <Ionicons name="alert-circle" size={16} color="#DC2626" />
-            <ThemedText className="flex-1 text-red-600 text-xs font-medium">
-              {registerError}
-            </ThemedText>
-          </View>
-        )}
-
         <ScrollView
-          className="flex-1 px-4 md:px-5"
-          contentContainerStyle={{ paddingBottom: 8 }}
+          contentContainerStyle={{ flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
+          keyboardShouldPersistTaps="handled"
+          className="flex-1"
         >
-          {stepContents.map((Content, index) => (
-            <View
-              key={index}
-              className={`gap-3 ${currentStep !== index + 1 ? "absolute h-0 opacity-0 overflow-hidden top-0 left-0 right-0 z-[-1]" : ""}`}
-            >
-              {Content}
-            </View>
-          ))}
-        </ScrollView>
+          <View className="flex-1 md:flex-row md:max-w-6xl md:mx-auto md:w-full">
+            <View className="hidden md:flex md:flex-1 md:justify-center md:items-center md:p-12 md:relative">
+              <View className="absolute w-[300px] h-[300px] rounded-full bg-orange-500/10 top-[-100px] right-[-80px]" />
+              <View className="absolute w-[200px] h-[200px] rounded-full bg-orange-500/5 bottom-[-60px] left-[-40px]" />
 
-        <View className="px-4 py-4 md:px-5 md:pt-4 md:pb-5 border-t border-t-gray-100">
-          <View className="flex-row gap-3 mb-3">
-            {currentStep > 1 && (
-              <Button
-                title="VOLTAR"
-                onPress={handlePreviousStep}
-                variant="outline"
-                size="md"
-                className="flex-1"
-              />
-            )}
+              <View className="relative z-10 max-w-md">
+                <Logo fontSize={36} />
 
-            {currentStep < currentMaxSteps && (
-              <Button
-                title="PRÓXIMO"
-                onPress={handleNextStep}
-                size="md"
-                disabled={isSubmitting}
-                className={`flex-1 ${currentStep > 1 ? "" : "w-full"}`}
-              />
-            )}
-
-            {currentStep === currentMaxSteps && (
-              <Button
-                title={isSubmitting ? "CRIANDO..." : "FINALIZAR"}
-                onPress={handleFinalSubmit}
-                disabled={isSubmitting}
-                size="md"
-                className="flex-1"
-              />
-            )}
-          </View>
-
-          <View className="flex-row justify-center items-center">
-            <ThemedText className="text-xs text-gray-600 font-normal">
-              Já tem uma conta?{" "}
-            </ThemedText>
-            <Link href="/login" asChild>
-              <Pressable>
-                <ThemedText
-                  style={{ color: linkColor }}
-                  className="text-xs font-semibold underline"
-                >
-                  Faça login
+                <ThemedText className="mt-6 text-2xl font-bold text-white leading-tight">
+                  Comece a gerenciar seus negócios hoje
                 </ThemedText>
-              </Pressable>
-            </Link>
+
+                <ThemedText className="mt-4 text-base text-gray-300 leading-relaxed">
+                  Crie sua conta e tenha acesso a todas as ferramentas para
+                  organizar seus serviços e pagamentos.
+                </ThemedText>
+
+                <View className="mt-8 gap-4">
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-10 h-10 rounded-full bg-orange-500/20 items-center justify-center">
+                      <Ionicons name="checkmark" size={20} color="#FF6B35" />
+                    </View>
+                    <ThemedText className="flex-1 text-gray-200">
+                      Cadastro rápido e intuitivo
+                    </ThemedText>
+                  </View>
+
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-10 h-10 rounded-full bg-orange-500/20 items-center justify-center">
+                      <Ionicons name="checkmark" size={20} color="#FF6B35" />
+                    </View>
+                    <ThemedText className="flex-1 text-gray-200">
+                      Para prestadores e clientes
+                    </ThemedText>
+                  </View>
+
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-10 h-10 rounded-full bg-orange-500/20 items-center justify-center">
+                      <Ionicons name="checkmark" size={20} color="#FF6B35" />
+                    </View>
+                    <ThemedText className="flex-1 text-gray-200">
+                      Totalmente gratuito para começar
+                    </ThemedText>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            <View className="flex-1 md:flex md:justify-center md:items-center md:p-8">
+              <View className="w-full md:max-w-md bg-card md:rounded-3xl md:shadow-2xl overflow-hidden min-h-full md:min-h-[650px] md:flex md:flex-col">
+                <View className="h-2 bg-primary md:hidden" />
+
+                <View className="flex-1 px-6 pt-12 pb-6 md:pt-8 md:pb-6 md:flex md:flex-col md:justify-between">
+                  <View>
+                    <View className="items-center mb-6">
+                      <View className="mb-3 w-12 h-12 rounded-2xl bg-primary items-center justify-center shadow-lg md:hidden">
+                        <MaterialIcons
+                          name="attach-money"
+                          size={24}
+                          color="white"
+                        />
+                      </View>
+                      <View className="md:hidden">
+                        <Logo fontSize={26} />
+                      </View>
+                      <ThemedText className="mt-2 text-xl font-bold text-card-foreground md:text-2xl md:mt-0">
+                        Criar nova conta
+                      </ThemedText>
+                      <ThemedText className="mt-2 text-sm text-gray-500 text-center">
+                        Preencha os dados abaixo para começar
+                      </ThemedText>
+
+                      <View className="flex-row items-center mt-5 mb-1">
+                        {Array.from({ length: currentMaxSteps }).map(
+                          (_, index) => (
+                            <React.Fragment key={index}>
+                              <View
+                                className={`w-2 h-2 rounded-full ${currentStep >= index + 1 ? "bg-primary" : "bg-gray-300"}`}
+                              />
+                              {index < currentMaxSteps - 1 && (
+                                <View className="w-3 h-0.5 bg-gray-300 mx-1" />
+                              )}
+                            </React.Fragment>
+                          )
+                        )}
+                      </View>
+
+                      <ThemedText className="text-xs text-gray-400 font-medium">
+                        Etapa {currentStep} de {currentMaxSteps}
+                      </ThemedText>
+                    </View>
+
+                    {registerError && (
+                      <View className="flex-row items-center bg-red-50 py-3 px-4 mb-2 rounded-xl gap-2 border border-red-200">
+                        <Ionicons
+                          name="alert-circle"
+                          size={18}
+                          color="#DC2626"
+                        />
+                        <ThemedText className="flex-1 text-red-600 text-sm font-medium">
+                          {registerError}
+                        </ThemedText>
+                      </View>
+                    )}
+
+                    <View className="min-h-[280px]">
+                      {stepContents.map((Content, index) => (
+                        <View
+                          key={index}
+                          className={`gap-3 ${currentStep !== index + 1 ? "absolute h-0 opacity-0 overflow-hidden top-0 left-0 right-0 -z-10" : ""}`}
+                        >
+                          {Content}
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+
+                <View className="px-6 pb-8 pt-4 md:pb-10 border-t border-t-gray-100">
+                  <View className="flex-row gap-3 mb-4">
+                    {currentStep > 1 && (
+                      <Button
+                        title="VOLTAR"
+                        onPress={handlePreviousStep}
+                        variant="outline"
+                        size="md"
+                        className="flex-1"
+                      />
+                    )}
+
+                    {currentStep < currentMaxSteps && (
+                      <Button
+                        title="PRÓXIMO"
+                        onPress={handleNextStep}
+                        size="md"
+                        disabled={isSubmitting}
+                        className={currentStep > 1 ? "flex-1" : "w-full"}
+                      />
+                    )}
+
+                    {currentStep === currentMaxSteps && (
+                      <Button
+                        title={isSubmitting ? "CRIANDO..." : "FINALIZAR"}
+                        onPress={handleFinalSubmit}
+                        disabled={isSubmitting}
+                        size="md"
+                        className="flex-1"
+                      />
+                    )}
+                  </View>
+
+                  <View className="flex-row justify-center items-center">
+                    <ThemedText className="text-sm text-gray-500">
+                      Já tem uma conta?{" "}
+                    </ThemedText>
+                    <Link href="/login" asChild>
+                      <Pressable>
+                        <ThemedText
+                          style={{ color: linkColor }}
+                          className="text-sm font-bold"
+                        >
+                          Faça login
+                        </ThemedText>
+                      </Pressable>
+                    </Link>
+                  </View>
+                </View>
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }

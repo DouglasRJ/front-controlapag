@@ -3,6 +3,7 @@ import { ControlledInput } from "@/components/forms/controlled-input";
 import { Logo } from "@/components/logo";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Button } from "@/components/ui/button";
 import { LoginData } from "@/lib/validators/auth";
 import { useAuthStore } from "@/store/authStore";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
@@ -11,7 +12,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Link } from "expo-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -29,11 +38,7 @@ export default function LoginScreen() {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
+  const { control, handleSubmit } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
@@ -43,140 +48,186 @@ export default function LoginScreen() {
 
   const onSubmit = async (data: LoginData) => {
     try {
+      setIsLoading(true);
+      setLoginError(false);
       await login(data);
     } catch {
       setLoginError(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <ThemedView className="flex-1 justify-center items-center md:p-4">
+    <ThemedView className="flex-1">
       <LinearGradient
-        colors={["#242120", "#242120", "#242120"]}
+        colors={["#242120", "#2d2d2d", "#242120"]}
         style={StyleSheet.absoluteFillObject}
       />
 
-      <View className="hidden md:block absolute top-[-80] right-[-40] w-[200] h-[200] rounded-full bg-orange-500/5" />
-      <View className="hidden md:block absolute bottom-[-100] left-[-80] w-[250] h-[250] rounded-full bg-orange-500/5" />
-      <View className="hidden md:block absolute top-[150] left-[30] w-[100] h-[100] rounded-full bg-orange-500/3" />
-
-      <View
-        className={`
-          w-full bg-card overflow-hidden flex-1 mb-4 
-          md:max-w-xl rounded-3xl md:shadow-2xl md:elevation-10 md:max-h-[80%]
-        `}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        className="flex-1"
       >
-        <View className="h-3 bg-primary" />
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          className="flex-1"
+        >
+          <View className="flex-1 md:flex-row md:max-w-6xl md:mx-auto md:w-full">
+            <View className="hidden md:flex md:flex-1 md:justify-center md:items-center md:p-12 md:relative">
+              <View className="absolute w-[300px] h-[300px] rounded-full bg-orange-500/10 top-[-100px] right-[-80px]" />
+              <View className="absolute w-[200px] h-[200px] rounded-full bg-orange-500/5 bottom-[-60px] left-[-40px]" />
 
-        <View className="items-center pt-6 pb-4 px-4 md:px-5">
-          <View className="mb-4 w-9 h-9 rounded-lg bg-primary items-center justify-center">
-            <MaterialIcons
-              name="attach-money"
-              size={20}
-              className="text-white"
-            />
-          </View>
-          <Logo fontSize={24} />
-          <ThemedText className="my-2 text-sm text-gray-600 text-center leading-relaxed">
-            Entre na sua conta para gerenciar seus serviços
-          </ThemedText>
-        </View>
+              <View className="relative z-10 max-w-md">
+                <Logo fontSize={36} />
 
-        <View className="flex-1 px-4 md:px-5 justify-between">
-          <View className="gap-3">
-            <View>
-              <Text className="text-sm font-semibold text-card-foreground mb-1">
-                Email
-              </Text>
-              <View className="relative">
-                <View className="absolute left-3.5 top-3.5 justify-center z-10">
-                  <Ionicons name="mail-outline" size={20} color="#9ca3af" />
-                </View>
-                <ControlledInput
-                  control={control}
-                  name="email"
-                  placeholder="seu@email.com"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  className="pl-11"
-                />
-              </View>
-            </View>
-
-            <View>
-              <Text className="text-sm font-semibold text-card-foreground mb-1">
-                Senha
-              </Text>
-              <View className="flex-row relative items-center">
-                <View className="absolute left-3.5 top-3.5 justify-center z-10">
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={20}
-                    color="#9ca3af"
-                  />
-                </View>
-                <ControlledInput
-                  control={control}
-                  name="password"
-                  placeholder="••••••••"
-                  secureTextEntry
-                  className="pl-11"
-                />
-              </View>
-            </View>
-            {loginError && (
-              <View className="bg-[#FEE2E2] p-4 rounded-lg border border-[#F87171]">
-                <ThemedText className="text-[#B91C1C] text-center font-medium text-xs">
-                  Falha no login. Verifique suas credenciais.
+                <ThemedText className="mt-6 text-2xl font-bold text-white leading-tight">
+                  Gerencie seus serviços de forma simples
                 </ThemedText>
+
+                <ThemedText className="mt-4 text-base text-gray-300 leading-relaxed">
+                  Conecte-se com clientes, organize pagamentos e controle tudo
+                  em um só lugar.
+                </ThemedText>
+
+                <View className="mt-8 gap-4">
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-10 h-10 rounded-full bg-orange-500/20 items-center justify-center">
+                      <Ionicons name="checkmark" size={20} color="#FF6B35" />
+                    </View>
+                    <ThemedText className="flex-1 text-gray-200">
+                      Gestão completa de pagamentos
+                    </ThemedText>
+                  </View>
+
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-10 h-10 rounded-full bg-orange-500/20 items-center justify-center">
+                      <Ionicons name="checkmark" size={20} color="#FF6B35" />
+                    </View>
+                    <ThemedText className="flex-1 text-gray-200">
+                      Controle de clientes e serviços
+                    </ThemedText>
+                  </View>
+
+                  <View className="flex-row items-center gap-3">
+                    <View className="w-10 h-10 rounded-full bg-orange-500/20 items-center justify-center">
+                      <Ionicons name="checkmark" size={20} color="#FF6B35" />
+                    </View>
+                    <ThemedText className="flex-1 text-gray-200">
+                      Relatórios e estatísticas
+                    </ThemedText>
+                  </View>
+                </View>
               </View>
-            )}
-            <View className="flex-row justify-between items-center mt-1 mb-2">
-              <View className="flex-row items-center gap-2">
-                <ControlledCheckbox
-                  label="Lembrar Senha"
-                  control={control}
-                  name="rememberMe"
-                  labelReverse
-                  colorText="text-card-foreground"
-                />
+            </View>
+
+            <View className="flex-1 md:flex md:justify-center md:items-center md:p-8">
+              <View className="w-full md:max-w-md bg-card md:rounded-3xl md:shadow-2xl overflow-hidden min-h-full md:min-h-[650px] md:flex md:flex-col">
+                <View className="h-2 bg-primary md:hidden" />
+
+                <View className="flex-1 px-6 pt-12 pb-6 md:pt-8 md:pb-6 md:flex md:flex-col md:justify-between">
+                  <View>
+                    <View className="items-center mb-6">
+                      <View className="mb-3 w-12 h-12 rounded-2xl bg-primary items-center justify-center shadow-lg md:hidden">
+                        <MaterialIcons
+                          name="attach-money"
+                          size={24}
+                          color="white"
+                        />
+                      </View>
+                      <View className="md:hidden">
+                        <Logo fontSize={26} />
+                      </View>
+                      <ThemedText className="mt-2 text-xl font-bold text-card-foreground md:text-2xl md:mt-0">
+                        Bem-vindo de volta
+                      </ThemedText>
+                      <ThemedText className="mt-2 text-sm text-gray-500 text-center">
+                        Entre na sua conta para continuar
+                      </ThemedText>
+                    </View>
+
+                    <View className="gap-3">
+                      <ControlledInput
+                        control={control}
+                        name="email"
+                        label="Email"
+                        placeholder="seu@email.com"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="off"
+                      />
+
+                      <ControlledInput
+                        control={control}
+                        name="password"
+                        label="Senha"
+                        placeholder="••••••••"
+                        secureTextEntry
+                        autoComplete="off"
+                      />
+
+                      {loginError && (
+                        <View className="flex-row items-center bg-red-50 py-3 px-4 mb-2 rounded-xl gap-2 border border-red-200">
+                          <Ionicons
+                            name="alert-circle"
+                            size={18}
+                            color="#DC2626"
+                          />
+                          <ThemedText className="flex-1 text-red-600 text-sm font-medium">
+                            Falha no login. Verifique suas credenciais.
+                          </ThemedText>
+                        </View>
+                      )}
+
+                      <View className="flex-row justify-between items-center mt-1">
+                        <View>
+                          <ControlledCheckbox
+                            label="Lembrar"
+                            control={control}
+                            name="rememberMe"
+                            labelReverse
+                            colorText="text-card-foreground"
+                          />
+                        </View>
+                        <Pressable>
+                          <Text className="text-sm text-primary font-semibold">
+                            Esqueci a senha
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                <View className="px-6 pb-8 pt-4 md:pb-10 border-t border-t-gray-100">
+                  <Button
+                    title={isLoading ? "ENTRANDO..." : "ENTRAR"}
+                    onPress={handleSubmit(onSubmit)}
+                    disabled={isLoading}
+                    size="md"
+                    className="w-full mb-4"
+                  />
+
+                  <View className="flex-row justify-center items-center">
+                    <ThemedText className="text-sm text-gray-500">
+                      Não tem uma conta?{" "}
+                    </ThemedText>
+                    <Link href="/register" asChild>
+                      <Pressable>
+                        <ThemedText className="text-sm text-primary font-bold">
+                          Cadastre-se
+                        </ThemedText>
+                      </Pressable>
+                    </Link>
+                  </View>
+                </View>
               </View>
-              <Link href="/forgot-password" asChild>
-                <Pressable>
-                  <Text className="text-xs text-primary font-semibold underline">
-                    Esqueci a senha
-                  </Text>
-                </Pressable>
-              </Link>
             </View>
           </View>
-
-          <View className="pb-4">
-            <Pressable
-              onPress={handleSubmit(onSubmit)}
-              disabled={isLoading}
-              className="bg-orange-500 rounded-xl py-3.5 items-center justify-center active:bg-orange-600 shadow-lg shadow-orange-500/30"
-            >
-              <Text className="text-white text-base font-bold tracking-wide">
-                {isLoading ? "ENTRANDO..." : "ENTRAR"}
-              </Text>
-            </Pressable>
-
-            <View className="flex-row justify-center items-center gap-1 mt-3">
-              <Text className="text-xs text-gray-600 font-normal">
-                Ainda não tem uma conta?
-              </Text>
-              <Link href="/register" asChild>
-                <Pressable>
-                  <Text className="text-xs text-orange-500 font-bold">
-                    Cadastre-se
-                  </Text>
-                </Pressable>
-              </Link>
-            </View>
-          </View>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }

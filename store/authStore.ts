@@ -78,6 +78,7 @@ export const useAuthStore = create(
                 address: data.providerProfile.address,
                 businessPhone: data.providerProfile.businessPhone,
               });
+              response.data.user.providerProfile = response.data.provider;
               break;
 
             case USER_ROLE.CLIENT:
@@ -93,13 +94,14 @@ export const useAuthStore = create(
                 address: data.clientProfile.address,
                 phone: data.clientProfile.phone,
               });
+              response.data.user.clientProfile = response.data.client;
               break;
             default:
               throw new Error("Invalid Role");
           }
 
           if (response?.data?.accessToken) {
-            const { user, accessToken } = response.data;
+            const { accessToken, user } = response.data;
             api.defaults.headers.common["Authorization"] =
               `Bearer ${accessToken}`;
             showToast("Cadastro realizado com sucesso!", "success");
