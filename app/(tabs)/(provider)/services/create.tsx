@@ -93,7 +93,7 @@ export default function CreateServiceScreen() {
           )
         : undefined;
 
-      await api.post("/service", {
+      const response = await api.post("/service", {
         name: data.name,
         description: data.description,
         address: data.hasFixedLocation ? data.address : undefined,
@@ -101,7 +101,7 @@ export default function CreateServiceScreen() {
         allowedPaymentMethods: data.allowedPaymentMethods,
         isRecurrent: data.isRecurrent,
       });
-      router.replace("/(tabs)/(provider)/services");
+      router.replace(`/(tabs)/(provider)/services/${response.data.id}`);
     } catch (error) {
       console.log(error);
     }
