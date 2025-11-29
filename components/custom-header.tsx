@@ -4,7 +4,7 @@ import { useThemeTransition } from "@/hooks/use-theme-transition";
 import { useAuthStore } from "@/store/authStore";
 import { useSidebar } from "@/store/sidebarStore";
 import { useThemeStore } from "@/store/themeStore";
-import { USER_ROLE } from "@/types/user-role";
+import { isProviderRole } from "@/utils/user-role";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Image, Pressable, View } from "react-native";
@@ -15,7 +15,7 @@ export function CustomHeader() {
   const switchThemeWithAnimation = useThemeTransition();
   const { openSidebar } = useSidebar();
 
-  const roleText = user?.role === USER_ROLE.PROVIDER ? "Prestador" : "Cliente";
+  const roleText = isProviderRole(user?.role) ? "Prestador" : "Cliente";
 
   const handleProfilePress = () => console.log("Profile picture pressed");
 
@@ -24,7 +24,7 @@ export function CustomHeader() {
   };
 
   return (
-    <View className="flex-row justify-between items-center px-4 w-full bg-background pt-5 pb-5 border-b border-borderColor ">
+    <View className="flex-row justify-between items-center px-4 w-full bg-background pt-5 pb-5 border-b border-slate-100 ">
       <Pressable onPress={openSidebar} className="items-center p-2">
         <Ionicons name="menu" size={32} className="text-foreground" />
       </Pressable>

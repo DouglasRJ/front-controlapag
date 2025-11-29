@@ -8,6 +8,7 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import { registerSchema } from "@/lib/validators/auth";
 import { useAuthStore } from "@/store/authStore";
 import { USER_ROLE } from "@/types/user-role";
+import { isProviderRole } from "@/utils/user-role";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LinearGradient } from "expo-linear-gradient";
@@ -51,7 +52,7 @@ export default function RegisterScreen() {
     if (!user) return;
     if (user?.role === USER_ROLE.CLIENT) {
       router.replace("/(tabs)/(client)/enrollments");
-    } else if (user?.role === USER_ROLE.PROVIDER) {
+    } else if (isProviderRole(user?.role)) {
       router.replace("/(tabs)/(provider)/services");
     }
   }, [user]);

@@ -5,7 +5,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { paymentMethodOptions } from "@/constants/service-payment-methods";
-import api from "@/services/api";
+import { useCreateService } from "@/hooks/use-services";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
@@ -84,24 +84,13 @@ export default function CreateServiceScreen() {
   const hasFixedLocation = watch("hasFixedLocation");
   const hasFixedPrice = watch("hasFixedPrice");
 
+  const createServiceMutation = useCreateService();
+
   const handleCreateService = async (data: NewServiceFormData) => {
     console.log("Payload a ser enviado para a API:", data);
     try {
-      const priceAsNumber = data.defaultPrice
-        ? parseFloat(
-            data.defaultPrice.replace(/[^0-9,-]/g, "").replace(",", ".")
-          )
-        : undefined;
-
-      const response = await api.post("/service", {
-        name: data.name,
-        description: data.description,
-        address: data.hasFixedLocation ? data.address : undefined,
-        defaultPrice: data.hasFixedPrice ? priceAsNumber : undefined,
-        allowedPaymentMethods: data.allowedPaymentMethods,
-        isRecurrent: data.isRecurrent,
-      });
-      router.replace(`/(tabs)/(provider)/services/${response.data.id}`);
+      const service = await createServiceMutation.mutateAsync(data);
+      router.replace(`/(tabs)/(provider)/services/${service.id}`);
     } catch (error) {
       console.log(error);
     }
@@ -237,9 +226,13 @@ export default function CreateServiceScreen() {
           </View>
 
           <Button
-            title={isSubmitting ? "Salvando..." : "Salvar Serviço"}
+            title={
+              isSubmitting || createServiceMutation.isPending
+                ? "Salvando..."
+                : "Salvar Serviço"
+            }
             onPress={handleSubmit(handleCreateService)}
-            disabled={isSubmitting}
+            disabled={isSubmitting || createServiceMutation.isPending}
             size="lg"
             className="mt-4 z-[-1]"
           />

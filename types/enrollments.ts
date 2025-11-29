@@ -2,6 +2,7 @@ import { Charge } from "./charge";
 import { ChargeException } from "./charge-exception";
 import { ChargeSchedule } from "./charge-schedule";
 import { Client } from "./client";
+import { BILLING_TYPE } from "./billing-type";
 import { ENROLLMENT_STATUS } from "./enrollment-status";
 import { Service } from "./service";
 import { ServiceSchedule } from "./service-schedule";
@@ -12,6 +13,9 @@ export interface Enrollments {
   startDate: Date;
   endDate?: Date;
   status: ENROLLMENT_STATUS;
+  billingType?: BILLING_TYPE;
+  pauseStartDate?: Date;
+  pauseEndDate?: Date;
   createdAt: Date;
   updatedAt: Date;
   chargeSchedule: ChargeSchedule;

@@ -1,98 +1,37 @@
 import { StripeOnboardingModal } from "@/app/onboarding/stripe";
-import { useAuthHydration } from "@/hooks/use-auth-hydration";
-import api from "@/services/api";
+import { useProviderServices } from "@/hooks/use-services";
 import { useAuthStore } from "@/store/authStore";
-import { Service } from "@/types/service";
-import { USER_ROLE } from "@/types/user-role";
+import { isProviderRole } from "@/utils/user-role";
 import { formatCurrency } from "@/utils/format-currency";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useSegments } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { useDebounce } from "@/hooks/use-debounce";
 import { ThemedText } from "../themed-text";
 import { Button } from "../ui/button";
 import { SearchInput } from "../ui/search-input";
 
-const debounce = (func: (...args: any[]) => void, delay: number) => {
-  let timeoutId: number;
-  const debounced = (...args: any[]) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => {
-      func(...args);
-    }, delay);
-  };
-  (debounced as any).cancel = () => clearTimeout(timeoutId);
-  return debounced;
-};
-
 export function ServicesCard() {
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOption, setSearchOption] = useState("all");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const isHydrated = useAuthHydration();
+  let isActiveFilter: boolean | undefined;
+  if (searchOption === "actives") {
+    isActiveFilter = true;
+  } else if (searchOption === "inactives") {
+    isActiveFilter = false;
+  }
 
-  const fetchServices = useCallback(
-    async (query: string, status: string) => {
-      if (!isHydrated) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        let isActiveFilter: boolean | undefined;
-        if (status === "actives") {
-          isActiveFilter = true;
-        } else if (status === "inactives") {
-          isActiveFilter = false;
-        }
-
-        const params = {
-          q: query || undefined,
-          isActive: isActiveFilter !== undefined ? isActiveFilter : undefined,
-        };
-
-        const response = await api.get<Service[]>("/provider/services", {
-          params,
-        });
-
-        setServices(response.data);
-      } catch (err) {
-        setError("Não foi possível carregar ou buscar os serviços.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [isHydrated]
-  );
-
-  const debouncedFetchServices = useCallback(
-    debounce((query, status) => fetchServices(query, status), 500),
-    [fetchServices]
-  );
-
-  useEffect(() => {
-    if (!isHydrated) return;
-
-    if (searchQuery) {
-      debouncedFetchServices(searchQuery, searchOption);
-    } else {
-      fetchServices(searchQuery, searchOption);
-    }
-
-    return () => {
-      (debouncedFetchServices as any).cancel();
-    };
-  }, [
-    isHydrated,
-    searchQuery,
-    searchOption,
-    fetchServices,
-    debouncedFetchServices,
-  ]);
+  const {
+    data: services = [],
+    isLoading,
+    error,
+  } = useProviderServices({
+    q: debouncedSearchQuery || undefined,
+    isActive: isActiveFilter,
+  });
 
   const optionsSearch = [
     { label: "Todos", value: "all" },
@@ -115,15 +54,17 @@ export function ServicesCard() {
   if (error) {
     return (
       <View>
-        <ThemedText>{error || "Dados indisponíveis."}</ThemedText>
+        <ThemedText>
+          {error ? "Não foi possível carregar ou buscar os serviços." : "Dados indisponíveis."}
+        </ThemedText>
       </View>
     );
   }
 
   const showServiceList =
-    services.length > 0 || searchQuery || searchOption !== "all";
+    services.length > 0 || debouncedSearchQuery || searchOption !== "all";
 
-  const isProvider = user?.role === USER_ROLE.PROVIDER;
+  const isProvider = isProviderRole(user?.role);
   const providerStatus = user?.providerProfile?.status;
 
   const currentRouteName = segments[segments.length - 1];
@@ -167,7 +108,7 @@ export function ServicesCard() {
           </View>
         </View>
 
-        {loading ? (
+        {isLoading ? (
           <View className="py-3">
             <ActivityIndicator size="large" />
           </View>

@@ -58,7 +58,7 @@ export function StripeOnboardingModal({ visible }: StripeOnboardingModalProps) {
 
   return (
     <Modal
-      visible={visible}
+      visible={false}
       transparent={true}
       animationType="fade"
       onRequestClose={() => {}}

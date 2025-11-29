@@ -1,41 +1,14 @@
-import { useAuthHydration } from "@/hooks/use-auth-hydration";
-import api from "@/services/api";
-import { OperationalMetrics } from "@/types/operational-metrics";
+import { useOperationalMetrics } from "@/hooks/use-provider";
 import { formatCurrency } from "@/utils/format-currency";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { ActivityIndicator, View } from "react-native";
 import { ThemedText } from "../themed-text";
 import { MetricCard } from "./metric-card";
 
 export function DashboardMetrics() {
-  const [metrics, setMetrics] = useState<OperationalMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const isHydrated = useAuthHydration();
+  const { data: metrics, isLoading, error } = useOperationalMetrics();
 
-  useEffect(() => {
-    if (!isHydrated) {
-      return;
-    }
-    const fetchMetrics = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get<OperationalMetrics>(
-          "/dashboard/operational-metrics"
-        );
-        setMetrics(response.data);
-      } catch (err) {
-        setError("Não foi possível carregar as métricas.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMetrics();
-  }, [isHydrated]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <View className="flex-row flex-wrap justify-between">
         <ActivityIndicator size="large" />
@@ -46,7 +19,9 @@ export function DashboardMetrics() {
   if (error || !metrics) {
     return (
       <View className="flex-row flex-wrap justify-between">
-        <ThemedText>{error || "Dados indisponíveis."}</ThemedText>
+        <ThemedText>
+          {error ? "Não foi possível carregar as métricas." : "Dados indisponíveis."}
+        </ThemedText>
       </View>
     );
   }

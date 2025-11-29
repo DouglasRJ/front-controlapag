@@ -1,6 +1,7 @@
 import { CustomHeader } from "@/components/custom-header";
 import { useAuthStore } from "@/store/authStore";
 import { USER_ROLE } from "@/types/user-role";
+import { isProviderRole } from "@/utils/user-role";
 import { Tabs, useSegments } from "expo-router";
 import React from "react";
 import { StripeOnboardingModal } from "../onboarding/stripe";
@@ -9,7 +10,7 @@ export default function TabLayout() {
   const { user } = useAuthStore();
   const providerStatus = user?.providerProfile?.status;
   const userRole = user?.role;
-  const isProvider = userRole === USER_ROLE.PROVIDER;
+  const isProvider = isProviderRole(userRole);
   const isClient = userRole === USER_ROLE.CLIENT;
   const segments = useSegments();
   const currentRouteName = segments[segments.length - 1];

@@ -1,11 +1,13 @@
 import { AnimatedSidebar } from "@/components/sidebar";
 import { ToastContainer } from "@/components/toast-container";
 import { useAuthHydration } from "@/hooks/use-auth-hydration";
+import { queryClient } from "@/lib/query-client";
 import api from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { useSidebar } from "@/store/sidebarStore";
 import { useThemeStore } from "@/store/themeStore";
-import { USER_ROLE } from "@/types/user-role";
+import { isProviderRole } from "@/utils/user-role";
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
   Poppins_100Thin,
   Poppins_100Thin_Italic,
@@ -92,16 +94,18 @@ export default function RootLayout() {
     );
   }
   return (
-    <View
-      ref={rootViewRef}
-      className={`flex-1 ${colorScheme === "dark" ? "dark" : ""} transition-colors duration-300 ease-in-out`}
-      style={{ flex: 1 }}
-    >
-      <InitialLayout />
-      <AnimatedSidebar isOpen={isOpen} onClose={closeSidebar} />
-      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-      <ToastContainer />
-    </View>
+    <QueryClientProvider client={queryClient}>
+      <View
+        ref={rootViewRef}
+        className={`flex-1 ${colorScheme === "dark" ? "dark" : ""} transition-colors duration-300 ease-in-out`}
+        style={{ flex: 1 }}
+      >
+        <InitialLayout />
+        <AnimatedSidebar isOpen={isOpen} onClose={closeSidebar} />
+        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+        <ToastContainer />
+      </View>
+    </QueryClientProvider>
   );
 }
 
@@ -117,10 +121,9 @@ function InitialLayout() {
     const inAuthGroup = segments[0] === "(auth)";
     if (isAuthenticated && user) {
       if (inAuthGroup) {
-        const homePath =
-          user.role === USER_ROLE.PROVIDER
-            ? "/(tabs)/(provider)/services"
-            : "/(tabs)/(client)/enrollments";
+        const homePath = isProviderRole(user.role)
+          ? "/(tabs)/(provider)/services"
+          : "/(tabs)/(client)/enrollments";
         router.replace(homePath);
       }
     } else if (!isAuthenticated && !inAuthGroup) {

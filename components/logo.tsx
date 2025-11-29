@@ -1,6 +1,8 @@
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
-import { View } from "react-native";
-import { ThemedText } from "./themed-text";
+import { Image, useColorScheme, View } from "react-native";
+// import a from "../assets/images/logos"
+const LogoAllBlack = require("../assets/images/logos/controlapag-allblack.png");
+const LogoFullPrimary = require("../assets/images/logos/controlapag-fullprimary.png");
 
 type LogoProps = {
   fontSize?: number;
@@ -16,20 +18,23 @@ export const Logo = ({
   const iconSize = fontSize * 0.5;
   const containerMarginBottom = hasMargin ? fontSize * 0.9 : 0;
 
+  const theme = useColorScheme();
+
+  const logoSource = theme === "dark" ? LogoFullPrimary : LogoAllBlack;
+
   return (
     <View
       className="flex-row items-center justify-center relative"
       style={{ marginBottom: containerMarginBottom }}
     >
-      <ThemedText className="text-primary" style={{ fontSize: fontSize }}>
-        Controla
-      </ThemedText>
-      <ThemedText
-        className=" text-primary font-bold"
-        style={{ fontSize: fontSize }}
-      >
-        PAG
-      </ThemedText>
+      <Image
+        source={logoSource}
+        style={{
+          height: fontSize,
+          width: fontSize * 4,
+        }}
+        resizeMode="contain"
+      />
 
       {showIcon && (
         <>

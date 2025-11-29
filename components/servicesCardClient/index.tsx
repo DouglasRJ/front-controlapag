@@ -1,5 +1,5 @@
-import { useAuthHydration } from "@/hooks/use-auth-hydration";
-import api from "@/services/api";
+import { useClientEnrollments } from "@/hooks/use-enrollments";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Charge } from "@/types/charge";
 import { CHARGE_STATUS } from "@/types/charge-status";
 import { ENROLLMENT_STATUS } from "@/types/enrollment-status";
@@ -7,94 +7,32 @@ import { Enrollments } from "@/types/enrollments";
 import { formatCurrency } from "@/utils/format-currency";
 import { isAfter, startOfToday } from "date-fns";
 import { router } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { ThemedText } from "../themed-text";
 import { Button } from "../ui/button";
 import { SearchInput } from "../ui/search-input";
 
-const debounce = (func: (...args: any[]) => void, delay: number) => {
-  let timeoutId: number;
-  const debounced = (...args: any[]) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => {
-      func(...args);
-    }, delay);
-  };
-  (debounced as any).cancel = () => clearTimeout(timeoutId);
-  return debounced;
-};
-
 export function EnrollmentsCardClient() {
-  const [enrollments, setEnrollments] = useState<Enrollments[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOption, setSearchOption] = useState("all");
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const isHydrated = useAuthHydration();
+  let isActiveFilter: boolean | undefined;
+  if (searchOption === "actives") {
+    isActiveFilter = true;
+  } else if (searchOption === "inactives") {
+    isActiveFilter = false;
+  }
 
-  const fetchEnrollments = useCallback(
-    async (query: string, status: string) => {
-      if (!isHydrated) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-
-        let isActiveFilter: boolean | undefined;
-        if (status === "actives") {
-          isActiveFilter = true;
-        } else if (status === "inactives") {
-          isActiveFilter = false;
-        }
-
-        const params = {
-          q: query || undefined,
-          isActive: isActiveFilter !== undefined ? isActiveFilter : undefined,
-        };
-
-        const response = await api.get<Enrollments[]>("/client/enrollments", {
-          params,
-        });
-
-        console.log("repsponse", response);
-
-        setEnrollments(response.data);
-      } catch (err) {
-        setError("Não foi possível carregar ou buscar os serviços.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [isHydrated]
-  );
-
-  const debouncedFetchEnrollments = useCallback(
-    debounce((query, status) => fetchEnrollments(query, status), 500),
-    [fetchEnrollments]
-  );
-
-  useEffect(() => {
-    if (!isHydrated) return;
-
-    if (searchQuery) {
-      debouncedFetchEnrollments(searchQuery, searchOption);
-    } else {
-      fetchEnrollments(searchQuery, searchOption);
-    }
-
-    return () => {
-      (debouncedFetchEnrollments as any).cancel();
-    };
-  }, [
-    isHydrated,
-    searchQuery,
-    searchOption,
-    fetchEnrollments,
-    debouncedFetchEnrollments,
-  ]);
+  const {
+    data: enrollments = [],
+    isLoading,
+    error,
+  } = useClientEnrollments({
+    q: debouncedSearchQuery || undefined,
+    isActive: isActiveFilter,
+  });
 
   const optionsSearch = [
     { label: "Todos", value: "all" },
@@ -113,13 +51,15 @@ export function EnrollmentsCardClient() {
   if (error) {
     return (
       <View>
-        <ThemedText>{error || "Dados indisponíveis."}</ThemedText>
+        <ThemedText>
+          {error ? "Não foi possível carregar ou buscar os serviços." : "Dados indisponíveis."}
+        </ThemedText>
       </View>
     );
   }
 
   const showEnrollmentList =
-    enrollments.length > 0 || searchQuery || searchOption !== "all";
+    enrollments.length > 0 || debouncedSearchQuery || searchOption !== "all";
 
   return (
     <View className="bg-card w-full p-3 justify-between min-h-16 gap-2 rounded-lg">
@@ -153,7 +93,7 @@ export function EnrollmentsCardClient() {
         </View>
       </View>
 
-      {loading ? (
+      {isLoading ? (
         <View className="py-3">
           <ActivityIndicator size="large" />
         </View>

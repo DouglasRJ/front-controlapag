@@ -11,7 +11,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuthStore } from "@/store/authStore";
-import { USER_ROLE } from "@/types/user-role";
+import { isProviderRole } from "@/utils/user-role";
 import { Logo } from "./logo";
 import { ThemedText } from "./themed-text";
 
@@ -58,7 +58,7 @@ export function AnimatedSidebar({ isOpen, onClose }: AnimatedSidebarProps) {
     {
       label: "Início",
       icon: "home-outline",
-      href: user?.role === USER_ROLE.PROVIDER ? "/services" : "/enrollments",
+      href: isProviderRole(user?.role) ? "/services" : "/enrollments",
     },
     {
       label: "Perfil",
@@ -90,10 +90,10 @@ export function AnimatedSidebar({ isOpen, onClose }: AnimatedSidebarProps) {
           },
           animatedSidebarStyle,
         ]}
-        className="absolute top-0 bottom-0 h-screen left-0 bg-background z-50 border-r border-borderColor"
+        className="absolute top-0 bottom-0 h-screen left-0 bg-background z-50 border-r border-slate-200"
       >
         <View>
-          <View className="flex-row items-center justify-between p-4 border-b border-borderColor">
+          <View className="flex-row items-center justify-between p-4 border-b border-slate-200">
             <View className="">
               <Logo fontSize={24} hasMargin={false} />
             </View>
@@ -121,7 +121,7 @@ export function AnimatedSidebar({ isOpen, onClose }: AnimatedSidebarProps) {
           </View>
         </View>
 
-        <View className="mt-auto justify-self-end p-4 border-t border-borderColor">
+        <View className="mt-auto justify-self-end p-4 border-t border-slate-200">
           <Pressable
             onPress={handleLogout}
             className="flex-row items-center p-3 rounded-lg active:bg-muted"
