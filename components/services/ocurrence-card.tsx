@@ -11,6 +11,10 @@ type OccurrenceCardProps = {
 
 export function OccurrenceCard({ occurrence }: OccurrenceCardProps) {
   const handlePress = () => {
+    if (!occurrence.enrollmentId) {
+      console.warn("Enrollment ID is missing, cannot navigate");
+      return;
+    }
     router.push(`/(tabs)/(provider)/enrollments/${occurrence.enrollmentId}`);
   };
 

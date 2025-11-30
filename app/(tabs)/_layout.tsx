@@ -1,47 +1,52 @@
-import { CustomHeader } from "@/components/custom-header";
+import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { useAuthStore } from "@/store/authStore";
-import { USER_ROLE } from "@/types/user-role";
-import { isProviderRole } from "@/utils/user-role";
-import { Tabs, useSegments } from "expo-router";
-import React from "react";
-import { StripeOnboardingModal } from "../onboarding/stripe";
+import { useSidebar } from "@/store/sidebarStore";
+import { Stack } from "expo-router";
+import React, { useState } from "react";
+import { ActivityIndicator, View, useWindowDimensions } from "react-native";
 
-export default function TabLayout() {
-  const { user } = useAuthStore();
-  const providerStatus = user?.providerProfile?.status;
-  const userRole = user?.role;
-  const isProvider = isProviderRole(userRole);
-  const isClient = userRole === USER_ROLE.CLIENT;
-  const segments = useSegments();
-  const currentRouteName = segments[segments.length - 1];
-  const isOnStripeConfiguredRoute = currentRouteName === "stripe-configured";
-  const showOnboardingModal =
-    isProvider && providerStatus !== "ACTIVE" && !isOnStripeConfiguredRoute;
+export default function DashboardLayout() {
+  const { isOpen, closeSidebar } = useSidebar();
+  const { isAuthenticated } = useAuthStore();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // O redirecionamento é feito pelo InitialLayout no _layout.tsx
+  // Mostra loading enquanto redireciona se não autenticado
+  if (!isAuthenticated) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" className="text-primary" />
+      </View>
+    );
+  }
 
   return (
-    <>
-      <Tabs
-        screenOptions={{
-          tabBarStyle: {
-            display: "none",
-          },
-          header: (props) => <CustomHeader />,
-        }}
-      >
-        <Tabs.Screen name="index" />
-        <Tabs.Screen name="stripe-configured" />
+    <View className="flex-1 flex-row bg-background">
+      {/* Sidebar */}
+      {(!isMobile || isOpen) && (
+        <DashboardSidebar
+          isOpen={isOpen}
+          onClose={closeSidebar}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
+        />
+      )}
 
-        {isProvider && (
-          <>
-            <Tabs.Screen name="(provider)" />
-            <Tabs.Screen name="(provider)/services" />
-            <Tabs.Screen name="(provider)/enrollments" />
-          </>
-        )}
-
-        {isClient && <Tabs.Screen name="(client)" />}
-      </Tabs>
-      <StripeOnboardingModal visible={showOnboardingModal} />
-    </>
+      {/* Main Content */}
+      <View className="flex-1">
+        <Stack
+          screenOptions={{
+            headerShown: false,
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(provider)" />
+          <Stack.Screen name="(client)" />
+        </Stack>
+      </View>
+    </View>
   );
 }
+

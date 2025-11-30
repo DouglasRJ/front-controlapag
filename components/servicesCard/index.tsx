@@ -6,11 +6,16 @@ import { formatCurrency } from "@/utils/format-currency";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useSegments } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ThemedText } from "../themed-text";
 import { Button } from "../ui/button";
 import { SearchInput } from "../ui/search-input";
+import { LoadingSpinner } from "../ui/loading-spinner";
+import { ErrorState } from "../ui/error-state";
+import { EmptyState } from "../ui/empty-state";
+import { SkeletonCard } from "../ui/skeleton";
+import { FadeInView } from "../ui/fade-in-view";
 
 export function ServicesCard() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,6 +33,7 @@ export function ServicesCard() {
     data: services = [],
     isLoading,
     error,
+    refetch,
   } = useProviderServices({
     q: debouncedSearchQuery || undefined,
     isActive: isActiveFilter,
@@ -50,16 +56,6 @@ export function ServicesCard() {
   const { user } = useAuthStore();
 
   const segments = useSegments();
-
-  if (error) {
-    return (
-      <View>
-        <ThemedText>
-          {error ? "Não foi possível carregar ou buscar os serviços." : "Dados indisponíveis."}
-        </ThemedText>
-      </View>
-    );
-  }
 
   const showServiceList =
     services.length > 0 || debouncedSearchQuery || searchOption !== "all";
@@ -109,26 +105,52 @@ export function ServicesCard() {
         </View>
 
         {isLoading ? (
-          <View className="py-3">
-            <ActivityIndicator size="large" />
+          <View className="py-3 gap-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <SkeletonCard
+                key={index}
+                showHeader={true}
+                showFooter={false}
+                lines={2}
+              />
+            ))}
           </View>
+        ) : error ? (
+          <ErrorState
+            variant="inline"
+            title="Erro ao carregar serviços"
+            message="Não foi possível carregar ou buscar os serviços."
+            onRetry={refetch}
+          />
         ) : (
           <View>
             {showServiceList ? (
               <>
-                {services.map((service) => (
-                  <ServiceCard key={service.id} service={service} />
+                {services.map((service, index) => (
+                  <FadeInView key={service.id} delay={index * 50}>
+                    <ServiceCard service={service} />
+                  </FadeInView>
                 ))}
                 {!services.length && (
-                  <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
-                    Nenhum serviço encontrado com a busca e filtros aplicados.
-                  </ThemedText>
+                  <EmptyState
+                    icon="search-outline"
+                    title="Nenhum serviço encontrado"
+                    description="Tente ajustar os filtros de busca ou criar um novo serviço."
+                    actionLabel="Criar serviço"
+                    onAction={handleNewService}
+                    className="py-8"
+                  />
                 )}
               </>
             ) : (
-              <ThemedText className="text-xs text-card-foreground font-light text-center py-8">
-                Nenhum serviço cadastrado
-              </ThemedText>
+              <EmptyState
+                icon="document-outline"
+                title="Nenhum serviço cadastrado"
+                description="Comece criando seu primeiro serviço para gerenciar seus contratos."
+                actionLabel="Criar serviço"
+                onAction={handleNewService}
+                className="py-8"
+              />
             )}
           </View>
         )}

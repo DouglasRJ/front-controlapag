@@ -7,20 +7,24 @@
   html {
     height: -webkit-fill-available;
     view-transition-name: root;
+    overflow: auto;
   }
 
   body {
     height: -webkit-fill-available;
+    overflow: auto;
   }
 
   #root {
     height: -webkit-fill-available;
+    overflow: auto;
   }
 }
 
 body {
   background-color: #242120;
   height: 100lvh;
+  overflow: auto;
 }
 
 @keyframes reveal-forwards {

@@ -143,7 +143,7 @@ export const useAuthStore = create(
       logout: () => {
         delete api.defaults.headers.common["Authorization"];
         set({ user: null, token: null, isAuthenticated: false });
-        router.navigate("/(auth)/login");
+        // Navegação será tratada pelo InitialLayout
       },
 
       fetchProfile: async () => {

@@ -8,7 +8,7 @@ import { formatDate } from "@/utils/format-date";
 import { getChargeFrequencySummary } from "@/utils/get-charge-frequency-summary";
 import { getServiceFrequencySummary } from "@/utils/get-service-frequency-sumary";
 import { isAfter, startOfToday } from "date-fns";
-import { router } from "expo-router";
+import { router, useSegments } from "expo-router";
 import React from "react";
 import { Pressable, View } from "react-native";
 
@@ -155,10 +155,14 @@ export function EnrollmentCard({
 }: EnrollmentCardProps) {
   const statusStyle = getStatusStyle(enrollment.status);
   const paymentStatus = getPaymentStatus(enrollment);
+  const segments = useSegments();
   const handlePress = () => {
-    router.push(
-      `/(tabs)/(provider)/enrollments/${enrollment.id}?serviceId=${enrollment.service?.id}`
-    );
+    if (!enrollment.id) {
+      console.warn("Enrollment ID is missing, cannot navigate");
+      return;
+    }
+    const serviceIdParam = enrollment.service?.id ? `?serviceId=${enrollment.service.id}` : "";
+    router.push(`/(tabs)/(provider)/enrollments/${enrollment.id}${serviceIdParam}`);
   };
 
   const serviceSummary = getServiceScheduleSummaryText(enrollment);

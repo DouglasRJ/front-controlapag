@@ -13,5 +13,6 @@ export interface Provider {
   paymentCustomerId?: string;
   subscriptionId?: string;
   providerPaymentId?: string;
+  organizationId?: string;
   services: Service[];
 }

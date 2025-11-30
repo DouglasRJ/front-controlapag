@@ -1,13 +1,12 @@
-import { AnimatedSidebar } from "@/components/sidebar";
+// Sidebar antiga removida - agora usamos DashboardSidebar no layout do dashboard
 import { ToastContainer } from "@/components/toast-container";
 import { useAuthHydration } from "@/hooks/use-auth-hydration";
 import { queryClient } from "@/lib/query-client";
 import api from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { useSidebar } from "@/store/sidebarStore";
+// Sidebar store ainda usado no dashboard layout
 import { useThemeStore } from "@/store/themeStore";
 import { isProviderRole } from "@/utils/user-role";
-import { QueryClientProvider } from "@tanstack/react-query";
 import {
   Poppins_100Thin,
   Poppins_100Thin_Italic,
@@ -29,6 +28,7 @@ import {
   Poppins_900Black_Italic,
 } from "@expo-google-fonts/poppins";
 import { useFonts } from "@expo-google-fonts/poppins/useFonts";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Slot, SplashScreen, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef } from "react";
@@ -41,7 +41,7 @@ export default function RootLayout() {
   const colorScheme = useThemeStore((state) => state.colorScheme);
   const themeHasHydrated = useThemeStore((state) => state._hasHydrated);
   const rootViewRef = useRef<View>(null);
-  const { isOpen, closeSidebar } = useSidebar();
+  // Sidebar agora gerenciada no dashboard layout
 
   const [fontsLoaded, fontError] = useFonts({
     Poppins_100Thin,
@@ -101,7 +101,6 @@ export default function RootLayout() {
         style={{ flex: 1 }}
       >
         <InitialLayout />
-        <AnimatedSidebar isOpen={isOpen} onClose={closeSidebar} />
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
         <ToastContainer />
       </View>
@@ -118,18 +117,37 @@ function InitialLayout() {
   useEffect(() => {
     if (!isHydrated) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
-    if (isAuthenticated && user) {
-      if (inAuthGroup) {
-        const homePath = isProviderRole(user.role)
-          ? "/(tabs)/(provider)/services"
-          : "/(tabs)/(client)/enrollments";
-        router.replace(homePath);
-      }
-    } else if (!isAuthenticated && !inAuthGroup) {
-      router.replace("/");
+    const firstSegment = segments[0];
+    const inAuthGroup = firstSegment === "(auth)";
+    const inTabsGroup = firstSegment === "(tabs)";
+
+    // Se não autenticado e tentando acessar tabs, redireciona para home
+    if (!isAuthenticated && inTabsGroup) {
+      router.replace("/(tabs)" as any);
+      return;
     }
-  }, [isAuthenticated, segments, user, router, isHydrated]);
+
+    // Se autenticado e está em auth, redireciona para tabs
+    if (isAuthenticated && user && inAuthGroup) {
+      const homePath = isProviderRole(user.role)
+        ? "/(tabs)/(provider)/services"
+        : "/(tabs)/(client)/enrollments";
+      router.replace(homePath);
+      return;
+    }
+
+    // Garantir que se estiver no tabs mas na rota errada após login (ex: analytics), redireciona para a rota correta
+    // Só faz isso se estiver especificamente em analytics e for provider
+    if (isAuthenticated && user && inTabsGroup) {
+      const currentPath = segments.join("/");
+      const isProvider = isProviderRole(user.role);
+
+      // Se for provider e estiver em analytics (rota que não deveria ser a inicial), redireciona para services
+      if (isProvider && currentPath.includes("analytics") && segments.length > 0 && segments[segments.length - 1] === "analytics") {
+        router.replace("/(tabs)/(provider)/services");
+      }
+    }
+  }, [isAuthenticated, segments, user, isHydrated, router]);
 
   if (!isHydrated) {
     return (

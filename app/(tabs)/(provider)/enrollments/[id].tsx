@@ -108,6 +108,8 @@ const defaultFormValues: EnrollmentFormData = {
   },
 };
 
+type UpdateEnrollmentDto = Partial<CreateEnrollmentDto>;
+
 export default function EnrollmentDetailScreen() {
   const { id, serviceId: serviceIdFromQuery } = useLocalSearchParams();
   const enrollmentId = Array.isArray(id) ? id[0] : id;
@@ -371,7 +373,7 @@ export default function EnrollmentDetailScreen() {
     if (serviceIdParam) {
       router.replace(`/(tabs)/(provider)/services/${serviceIdParam}`);
     } else {
-      router.replace("/(tabs)/(provider)/services/");
+      router.replace("/(tabs)/(provider)/services");
     }
   };
 
@@ -541,7 +543,12 @@ export default function EnrollmentDetailScreen() {
         const response = await api.post<Enrollments>("enrollments", createDto);
         addToast(`Contrato criado com sucesso`, "success");
         resetFormFromEnrollment(null);
-        router.push(`/(tabs)/(provider)/enrollments/${response.data.id}`);
+        if (response.data?.id) {
+          router.push(`/(tabs)/(provider)/enrollments/${response.data.id}`);
+        } else {
+          console.error("Enrollment created but no ID returned");
+          router.push("/(tabs)/(provider)/enrollments");
+        }
       } else {
         const updateDto: UpdateEnrollmentDto = apiData;
         const response = await api.patch<Enrollments>(

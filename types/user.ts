@@ -17,6 +17,8 @@ export interface User {
 
   updatedAt: Date;
 
+  organizationId?: string;
+
   providerProfile: Provider;
 
   clientProfile: Client;

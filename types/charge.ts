@@ -5,7 +5,9 @@ export interface Charge {
   amount: number;
   dueDate: Date;
   status: CHARGE_STATUS;
-  paidAt: Date;
+  paidAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  enrollmentId: string;
+  refundedAmount?: number;
 }

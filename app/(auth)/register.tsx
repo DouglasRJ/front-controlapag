@@ -1,21 +1,24 @@
 import { ControlledInput } from "@/components/forms/controlled-input";
 import { ControlledSelect } from "@/components/forms/controlled-select";
+import { RegisterStepIndicator } from "@/components/forms/register-step-indicator";
 import { Logo } from "@/components/logo";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Button } from "@/components/ui/button";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { registerSchema } from "@/lib/validators/auth";
+import api from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { USER_ROLE } from "@/types/user-role";
 import { isProviderRole } from "@/utils/user-role";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link, router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { Link, router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import {
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -42,20 +45,30 @@ const MAX_CLIENT_STEPS = 4;
 
 export default function RegisterScreen() {
   const { register, user } = useAuthStore();
+  const params = useLocalSearchParams<{ role?: string }>();
 
   const linkColor = useThemeColor({}, "tint");
 
   const [currentStep, setCurrentStep] = useState(1);
   const [registerError, setRegisterError] = useState(null);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(0));
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    if (user?.role === USER_ROLE.CLIENT) {
-      router.replace("/(tabs)/(client)/enrollments");
-    } else if (isProviderRole(user?.role)) {
-      router.replace("/(tabs)/(provider)/services");
+  // Função para verificar se o email já existe
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    if (!email || email.length === 0) return false;
+    try {
+      setIsCheckingEmail(true);
+      const response = await api.get(`/user/check-email/${encodeURIComponent(email)}`);
+      return response.data.exists;
+    } catch (error) {
+      console.error("Erro ao verificar email:", error);
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
     }
-  }, [user]);
+  };
 
   const {
     control,
@@ -80,6 +93,33 @@ export default function RegisterScreen() {
     mode: "onBlur",
   });
 
+  useEffect(() => {
+    if (!user) return;
+    // Redireciona para a tela de complete após o cadastro
+    router.replace("/onboarding/complete");
+  }, [user]);
+
+  // Anima entrada
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  // Se recebeu role como parâmetro, define no formulário
+  useEffect(() => {
+    if (params.role && (params.role === USER_ROLE.PROVIDER || params.role === USER_ROLE.CLIENT)) {
+      setValue("role", params.role as USER_ROLE);
+      // Se já tem role, pula para o step 3
+      if (currentStep < 3) {
+        setCurrentStep(3);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.role]);
+
   const role = watch("role");
   const password = watch("password");
   const confirmPassword = watch("confirmPassword");
@@ -96,7 +136,8 @@ export default function RegisterScreen() {
         setValue("clientProfile", initialClientProfile);
       }
     }
-  }, [role, setValue, getValues]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
 
   const handleNextStep = async () => {
     setRegisterError(null);
@@ -106,6 +147,18 @@ export default function RegisterScreen() {
     switch (currentStep) {
       case 1:
         fieldsToValidate = ["username", "email"];
+        // Valida se o email já existe antes de prosseguir
+        const emailValue = getValues("email");
+        if (emailValue && emailValue.includes("@") && emailValue.includes(".")) {
+          const emailExists = await checkEmailExists(emailValue);
+          if (emailExists) {
+            setError("email", {
+              type: "manual",
+              message: "Este email já está em uso.",
+            });
+            shouldProceed = false;
+          }
+        }
         break;
       case 2:
         fieldsToValidate = ["password", "confirmPassword"];
@@ -152,6 +205,14 @@ export default function RegisterScreen() {
     const isValid = await trigger(fieldsToValidate, { shouldFocus: true });
 
     if (isValid) {
+      // Anima transição
+      slideAnim.setValue(-20);
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+
       if (currentStep === MAX_CLIENT_STEPS && role === USER_ROLE.CLIENT) {
         handleFinalSubmit(getValues());
       } else if (currentStep < MAX_PROVIDER_STEPS) {
@@ -210,7 +271,7 @@ export default function RegisterScreen() {
 
   const Step1Content = (
     <>
-      <ThemedText className="text-base font-bold text-gray-800 mb-3">
+      <ThemedText className="text-base font-bold text-gray-800 mb-2">
         Identificação Básica
       </ThemedText>
       <ControlledInput
@@ -234,7 +295,7 @@ export default function RegisterScreen() {
 
   const Step2Content = (
     <>
-      <ThemedText className="text-base font-bold text-gray-800 mb-3">
+      <ThemedText className="text-base font-bold text-gray-800 mb-2">
         Segurança da Conta
       </ThemedText>
       <ControlledInput
@@ -258,7 +319,7 @@ export default function RegisterScreen() {
 
   const Step3Content = (
     <>
-      <ThemedText className="text-base font-bold text-gray-800 mb-3">
+      <ThemedText className="text-base font-bold text-gray-800 mb-2">
         Tipo de Conta
       </ThemedText>
       <ControlledSelect
@@ -272,7 +333,7 @@ export default function RegisterScreen() {
 
   const Step4ProviderContent = (
     <>
-      <ThemedText className="text-base font-bold text-gray-800 mb-3">
+      <ThemedText className="text-base font-bold text-gray-800 mb-2">
         Detalhes do Prestador
       </ThemedText>
       <ControlledInput
@@ -302,7 +363,7 @@ export default function RegisterScreen() {
 
   const Step4ClientContent = (
     <>
-      <ThemedText className="text-base font-bold text-gray-800 mb-3">
+      <ThemedText className="text-base font-bold text-gray-800 mb-2">
         Detalhes do Cliente
       </ThemedText>
       <ControlledInput
@@ -324,7 +385,7 @@ export default function RegisterScreen() {
 
   const Step5Content = (
     <>
-      <ThemedText className="text-base font-bold text-gray-800 mb-3">
+      <ThemedText className="text-base font-bold text-gray-800 mb-2">
         Sobre Você
       </ThemedText>
       <ControlledInput
@@ -338,16 +399,39 @@ export default function RegisterScreen() {
     </>
   );
 
-  const currentMaxSteps =
-    role === USER_ROLE.PROVIDER ? MAX_PROVIDER_STEPS : MAX_CLIENT_STEPS;
+  const currentMaxSteps = useMemo(
+    () => (role === USER_ROLE.PROVIDER ? MAX_PROVIDER_STEPS : MAX_CLIENT_STEPS),
+    [role]
+  );
 
-  const stepContents = [
-    Step1Content,
-    Step2Content,
-    Step3Content,
-    role === USER_ROLE.PROVIDER ? Step4ProviderContent : Step4ClientContent,
-    role === USER_ROLE.PROVIDER ? Step5Content : null,
-  ].filter((content) => content !== null);
+  const stepContents = useMemo(
+    () =>
+      [
+        Step1Content,
+        Step2Content,
+        Step3Content,
+        role === USER_ROLE.PROVIDER ? Step4ProviderContent : Step4ClientContent,
+        role === USER_ROLE.PROVIDER ? Step5Content : null,
+      ].filter((content) => content !== null),
+    [role]
+  );
+
+  const steps = useMemo(
+    () => [
+      { number: 1, title: "Identificação", icon: "person-outline" },
+      { number: 2, title: "Segurança", icon: "lock-closed-outline" },
+      { number: 3, title: "Tipo de Conta", icon: "business-outline" },
+      {
+        number: 4,
+        title: role === USER_ROLE.PROVIDER ? "Detalhes" : "Informações",
+        icon: role === USER_ROLE.PROVIDER ? "briefcase-outline" : "person-outline",
+      },
+      ...(role === USER_ROLE.PROVIDER
+        ? [{ number: 5, title: "Sobre Você", icon: "document-text-outline" }]
+        : []),
+    ],
+    [role]
+  );
 
   return (
     <ThemedView className="flex-1">
@@ -415,12 +499,12 @@ export default function RegisterScreen() {
             </View>
 
             <View className="flex-1 md:flex md:justify-center md:items-center md:p-8">
-              <View className="w-full md:max-w-md bg-card md:rounded-3xl md:shadow-2xl overflow-hidden min-h-full md:min-h-[650px] md:flex md:flex-col">
+              <View className="w-full md:max-w-md bg-card md:rounded-3xl md:shadow-2xl overflow-hidden md:flex md:flex-col">
                 <View className="h-2 bg-primary md:hidden" />
 
-                <View className="flex-1 px-6 pt-12 pb-6 md:pt-8 md:pb-6 md:flex md:flex-col md:justify-between">
+                <View className="px-6 pt-8 pb-6 md:pt-8 md:pb-6 md:flex md:flex-col">
                   <View>
-                    <View className="items-center mb-6">
+                    <View className="items-center mb-4">
                       <View className="mb-3 w-12 h-12 rounded-2xl bg-primary items-center justify-center shadow-lg md:hidden">
                         <MaterialIcons
                           name="attach-money"
@@ -434,32 +518,22 @@ export default function RegisterScreen() {
                       <ThemedText className="mt-2 text-xl font-bold text-card-foreground md:text-2xl md:mt-0">
                         Criar nova conta
                       </ThemedText>
-                      <ThemedText className="mt-2 text-sm text-gray-500 text-center">
+                      <ThemedText className="mt-1 text-sm text-gray-500 text-center">
                         Preencha os dados abaixo para começar
-                      </ThemedText>
-
-                      <View className="flex-row items-center mt-5 mb-1">
-                        {Array.from({ length: currentMaxSteps }).map(
-                          (_, index) => (
-                            <React.Fragment key={index}>
-                              <View
-                                className={`w-2 h-2 rounded-full ${currentStep >= index + 1 ? "bg-primary" : "bg-gray-300"}`}
-                              />
-                              {index < currentMaxSteps - 1 && (
-                                <View className="w-3 h-0.5 bg-gray-300 mx-1" />
-                              )}
-                            </React.Fragment>
-                          )
-                        )}
-                      </View>
-
-                      <ThemedText className="text-xs text-gray-400 font-medium">
-                        Etapa {currentStep} de {currentMaxSteps}
                       </ThemedText>
                     </View>
 
+                    {/* Step Indicator */}
+                    <View className="mb-4">
+                      <RegisterStepIndicator
+                        currentStep={currentStep}
+                        totalSteps={currentMaxSteps}
+                        steps={steps}
+                      />
+                    </View>
+
                     {registerError && (
-                      <View className="flex-row items-center bg-red-50 py-3 px-4 mb-2 rounded-xl gap-2 border border-red-200">
+                      <View className="flex-row items-center bg-red-50 py-3 px-4 mb-3 rounded-xl gap-2 border border-red-200">
                         <Ionicons
                           name="alert-circle"
                           size={18}
@@ -471,15 +545,32 @@ export default function RegisterScreen() {
                       </View>
                     )}
 
-                    <View className="min-h-[280px]">
-                      {stepContents.map((Content, index) => (
-                        <View
-                          key={index}
-                          className={`gap-3 ${currentStep !== index + 1 ? "absolute h-0 opacity-0 overflow-hidden top-0 left-0 right-0 -z-10" : ""}`}
-                        >
-                          {Content}
-                        </View>
-                      ))}
+                    <View className="relative">
+                      {stepContents.map((Content, index) => {
+                        const isActive = currentStep === index + 1;
+                        if (!isActive) return null;
+                        
+                        return (
+                          <Animated.View
+                            key={index}
+                            style={{
+                              opacity: fadeAnim,
+                              transform: [
+                                {
+                                  translateX: slideAnim.interpolate({
+                                    inputRange: [-20, 0],
+                                    outputRange: [20, 0],
+                                    extrapolate: "clamp",
+                                  }),
+                                },
+                              ],
+                            }}
+                            className="gap-2"
+                          >
+                            {Content}
+                          </Animated.View>
+                        );
+                      })}
                     </View>
                   </View>
                 </View>

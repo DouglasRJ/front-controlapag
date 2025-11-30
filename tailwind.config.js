@@ -62,6 +62,31 @@ const palette = {
     900: "#171717",
     950: "#0A0A0A",
   },
+  // Cores semânticas para feedback e status
+  success: {
+    50: "#F0FDF4",
+    100: "#DCFCE7",
+    500: "#22C55E",
+    600: "#16A34A",
+  },
+  warning: {
+    50: "#FFFBEB",
+    100: "#FEF3C7",
+    500: "#F59E0B",
+    600: "#D97706",
+  },
+  error: {
+    50: "#FEF2F2",
+    100: "#FEE2E2",
+    500: "#EF4444",
+    600: "#DC2626",
+  },
+  info: {
+    50: "#EFF6FF",
+    100: "#DBEAFE",
+    500: "#3B82F6",
+    600: "#2563EB",
+  },
 };
 
 const Colors = {
@@ -184,6 +209,32 @@ module.exports = {
           900: palette.neutral[900],
           950: palette.neutral[950],
         },
+        
+        // Cores semânticas
+        success: {
+          50: palette.success[50],
+          100: palette.success[100],
+          500: palette.success[500],
+          600: palette.success[600],
+        },
+        warning: {
+          50: palette.warning[50],
+          100: palette.warning[100],
+          500: palette.warning[500],
+          600: palette.warning[600],
+        },
+        error: {
+          50: palette.error[50],
+          100: palette.error[100],
+          500: palette.error[500],
+          600: palette.error[600],
+        },
+        info: {
+          50: palette.info[50],
+          100: palette.info[100],
+          500: palette.info[500],
+          600: palette.info[600],
+        },
       },
       darkColors: {
         background: Colors.dark.background,
@@ -235,14 +286,85 @@ module.exports = {
         },
         border: Colors.dark.border,
         accent: Colors.dark.accent,
+        
+        // Cores semânticas (mesmas para dark mode)
+        success: {
+          50: palette.success[50],
+          100: palette.success[100],
+          500: palette.success[500],
+          600: palette.success[600],
+        },
+        warning: {
+          50: palette.warning[50],
+          100: palette.warning[100],
+          500: palette.warning[500],
+          600: palette.warning[600],
+        },
+        error: {
+          50: palette.error[50],
+          100: palette.error[100],
+          500: palette.error[500],
+          600: palette.error[600],
+        },
+        info: {
+          50: palette.info[50],
+          100: palette.info[100],
+          500: palette.info[500],
+          600: palette.info[600],
+        },
       },
       fontFamily: {
+        // Poppins (mantido para compatibilidade)
         thin: ["Poppins_100Thin"],
         light: ["Poppins_300Light"],
         regular: ["Poppins_400Regular"],
         medium: ["Poppins_500Medium"],
+        semibold: ["Poppins_600SemiBold"],
         bold: ["Poppins_700Bold"],
         black: ["Poppins_900Black"],
+        // Inter (preferido para o novo design system)
+        sans: ["Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
+      },
+      fontSize: {
+        xs: "0.75rem", // 12px
+        sm: "0.875rem", // 14px
+        base: "1rem", // 16px
+        lg: "1.125rem", // 18px
+        xl: "1.25rem", // 20px
+        "2xl": "1.5rem", // 24px
+        "3xl": "1.875rem", // 30px
+        "4xl": "2.25rem", // 36px
+      },
+      fontWeight: {
+        regular: 400,
+        medium: 500,
+        semibold: 600,
+        bold: 700,
+      },
+      spacing: {
+        xs: "0.25rem", // 4px
+        sm: "0.5rem", // 8px
+        md: "1rem", // 16px
+        lg: "1.5rem", // 24px
+        xl: "2rem", // 32px
+        "2xl": "3rem", // 48px
+        "3xl": "4rem", // 64px
+      },
+      borderRadius: {
+        none: "0",
+        sm: "0.375rem", // 6px
+        md: "0.5rem", // 8px
+        lg: "0.75rem", // 12px
+        xl: "1rem", // 16px
+        "2xl": "1.5rem", // 24px
+        full: "9999px",
+      },
+      boxShadow: {
+        sm: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        md: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+        lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        xl: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
       },
     },
   },
